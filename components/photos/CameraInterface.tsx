@@ -21,11 +21,13 @@ export default function CameraInterface({
   const [useCapacitor, setUseCapacitor] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
+  const [useSystemCamera, setUseSystemCamera] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const systemCameraRef = useRef<HTMLInputElement>(null);
 
-  // Check if Capacitor is available (native app)
+  // Check for Capacitor
   useEffect(() => {
     const checkCapacitor = async () => {
       try {
@@ -34,98 +36,102 @@ export default function CameraInterface({
           setUseCapacitor(true);
         }
       } catch {
-        setUseCapacitor(false);
+        // Not native
       }
     };
     checkCapacitor();
   }, []);
 
-  // Initialize web camera
+  // Web Camera Initialization
   useEffect(() => {
-    if (useCapacitor) return;
+    if (useCapacitor || useSystemCamera) return;
 
     let mounted = true;
     let stream: MediaStream | null = null;
 
-    const initCamera = async () => {
+    const startCamera = async () => {
       try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error('Camera API not supported in this browser. Please use HTTPS or a modern browser.');
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error('Your browser does not support camera access.');
         }
 
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: 'environment',
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
           },
-          audio: false,
+          audio: false
         });
 
         if (mounted && videoRef.current) {
           videoRef.current.srcObject = stream;
-
-          try {
-            await videoRef.current.play();
-            setIsCameraReady(true);
-            setCameraError(null);
-          } catch (e) {
-            console.error('Autoplay blocked:', e);
-            // On some browsers, play() must be triggered by user gesture
-            // We'll keep isCameraReady false which shows the loading/retry UI
+          // Wait for metadata to load to get dimensions
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current?.play().then(() => {
+              if (mounted) {
+                setIsCameraReady(true);
+                setCameraError(null);
+              }
+            }).catch(err => {
+              console.error('Play error:', err);
+              // Autoplay block? Show error so user can trigger manually
+              if (mounted) setCameraError('Tap to start camera feed');
+            });
+          };
+        }
+      } catch (err: any) {
+        console.error('Camera Init Error:', err);
+        if (mounted) {
+          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+            setCameraError('Permission denied. Please allow camera access.');
+          } else {
+            setCameraError(err.message || 'Could not start camera.');
           }
+          // Suggest system camera if web cam fails
+          setUseSystemCamera(true);
         }
-      } catch (error: any) {
-        console.error('Camera access error:', error);
-        let msg = error.message || 'Could not access camera';
-        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-          msg = 'Camera access denied. Please check your browser settings and refresh.';
-        } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-          msg = 'No camera found on this device.';
-        }
-        if (mounted) setCameraError(msg);
       }
     };
 
-    initCamera();
+    startCamera();
 
     return () => {
       mounted = false;
       if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
+        stream.getTracks().forEach(t => t.stop());
       }
     };
-  }, [useCapacitor]);
+  }, [useCapacitor, useSystemCamera]);
 
-  const handleRetryCamera = () => {
-    window.location.reload();
-  };
-
-  const capturePhotoFromCamera = async () => {
-    if (useCapacitor) {
-      await captureWithCapacitor();
-    } else {
-      captureWithWebAPI();
-    }
-  };
-
-  const captureWithWebAPI = () => {
+  const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-    if (!context) return;
+    const video = videoRef.current;
 
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    context.drawImage(videoRef.current, 0, 0);
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     canvas.toBlob((blob) => {
       if (blob) {
         const url = URL.createObjectURL(blob);
-        setPhotos((prev) => [...prev, url]);
+        setPhotos(prev => [...prev, url]);
       }
     }, 'image/jpeg', 0.9);
+  };
+
+  const handleSystemCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const url = URL.createObjectURL(file);
+      setPhotos(prev => [...prev, url]);
+    }
   };
 
   const captureWithCapacitor = async () => {
@@ -133,126 +139,132 @@ export default function CameraInterface({
       const { Camera } = await import('@capacitor/camera');
       const photo = await Camera.getPhoto({
         quality: 90,
-        allowEditing: false,
         resultType: CameraResultType.Base64,
         source: CameraSource.Camera,
       });
 
       if (photo.base64String) {
-        const blob = base64ToBlob(photo.base64String, 'image/jpeg');
+        const binaryString = atob(photo.base64String);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: 'image/jpeg' });
         const url = URL.createObjectURL(blob);
-        setPhotos((prev) => [...prev, url]);
+        setPhotos(prev => [...prev, url]);
       }
-    } catch (error) {
-      console.error('Capacitor capture error:', error);
+    } catch (err) {
+      console.error('Capacitor Error:', err);
     }
-  };
-
-  const base64ToBlob = (base64: string, mimeType: string): Blob => {
-    const binaryString = atob(base64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    return new Blob([bytes], { type: mimeType });
   };
 
   const handleRemovePhoto = (index: number) => {
-    const urlToRemove = photos[index];
-    URL.revokeObjectURL(urlToRemove);
-    setPhotos((prev) => prev.filter((_, i) => i !== index));
+    const url = photos[index];
+    URL.revokeObjectURL(url);
+    setPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleUploadPhotos = async () => {
-    const photoFiles: File[] = [];
-    try {
-      for (let i = 0; i < photos.length; i++) {
-        const url = photos[i];
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const file = new File([blob], `photo-${Date.now()}-${i}.jpg`, { type: 'image/jpeg' });
-        photoFiles.push(file);
-      }
-      await onPhotosCapture(photoFiles);
-      photos.forEach(url => URL.revokeObjectURL(url));
-      setPhotos([]);
-    } catch (e) {
-      console.error('Upload failed:', e);
+  const handleUpload = async () => {
+    const files: File[] = [];
+    for (const url of photos) {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      files.push(new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' }));
     }
+    await onPhotosCapture(files);
+    photos.forEach(url => URL.revokeObjectURL(url));
+    setPhotos([]);
   };
 
-  const handleEndSession = () => {
-    photos.forEach((url) => URL.revokeObjectURL(url));
-    onEndSession();
+  const toggleCameraMode = () => {
+    setUseSystemCamera(!useSystemCamera);
+    setIsCameraReady(false);
+    setCameraError(null);
   };
 
   return (
     <div className="camera-interface">
       <div className="camera-container">
         {useCapacitor ? (
-          <div className="native-camera-area">
-            <div className="camera-placeholder">
-              <span className="camera-icon-large">📸</span>
-              <p>Mobile Camera Ready</p>
-            </div>
-            <button className="btn btn-primary btn-large" onClick={capturePhotoFromCamera}>
-              📷 Open Camera
-            </button>
+          <div className="native-camera-placeholder">
+            <span className="icon">📷</span>
+            <p>Native Mobile Mode</p>
+            <button className="btn btn-primary" onClick={captureWithCapacitor}>Take Photo</button>
           </div>
-        ) : cameraError ? (
-          <div className="camera-error">
-            <p>{cameraError}</p>
-            <button className="btn btn-secondary mt-4" onClick={handleRetryCamera}>
-              Retry Camera
+        ) : useSystemCamera ? (
+          <div className="system-camera-placeholder">
+            <span className="icon">�</span>
+            <p>Use your device's native camera app</p>
+            <button className="btn btn-primary btn-lg" onClick={() => systemCameraRef.current?.click()}>
+              Open System Camera
+            </button>
+            <button className="btn-text mt-4" onClick={toggleCameraMode} style={{ color: 'white' }}>
+              Switch to Live Browser Feed
             </button>
           </div>
         ) : !isCameraReady ? (
           <div className="camera-loading">
-            <div className="spinner"></div>
-            <p>Initializing Camera...</p>
-            <p className="text-muted text-sm">Please allow camera access in your browser</p>
+            {cameraError ? (
+              <div className="error-box">
+                <p>{cameraError}</p>
+                <button className="btn btn-secondary mt-4" onClick={() => window.location.reload()}>Retry</button>
+                <button className="btn-text mt-4 block" onClick={toggleCameraMode} style={{ color: 'white', display: 'block', margin: '1rem auto' }}>
+                  Use System Camera instead
+                </button>
+              </div>
+            ) : (
+              <div className="loading-box">
+                <div className="spinner"></div>
+                <p>Starting Live Feed...</p>
+              </div>
+            )}
           </div>
         ) : (
-          <>
+          <div className="live-feed">
             <video ref={videoRef} className="camera-video" autoPlay playsInline muted />
-            <button
-              className="btn-capture"
-              onClick={capturePhotoFromCamera}
-              disabled={isUploading}
-              aria-label="Capture Photo"
-            ></button>
-          </>
+            <div className="feed-controls">
+              <button className="btn-capture" onClick={capturePhoto} aria-label="Capture"></button>
+              <button className="btn-switch-mode" onClick={toggleCameraMode} title="Use System Camera">
+                🔄
+              </button>
+            </div>
+          </div>
         )}
-        <canvas ref={canvasRef} style={{ display: 'none' }} />
       </div>
+
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        ref={systemCameraRef}
+        style={{ display: 'none' }}
+        onChange={handleSystemCapture}
+      />
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
 
       <div className="photos-preview">
         <h3>Captured Photos ({photos.length})</h3>
-        {photos.length > 0 && (
-          <div className="preview-grid">
-            {photos.map((url, index) => (
-              <div key={index} className="preview-item">
-                <img src={url} alt={`Captured ${index}`} />
-                <button className="btn-remove" onClick={() => handleRemovePhoto(index)} disabled={isUploading}>✕</button>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="preview-grid">
+          {photos.map((url, i) => (
+            <div key={i} className="preview-item">
+              <img src={url} alt="Preview" />
+              <button className="btn-remove" onClick={() => handleRemovePhoto(i)}>✕</button>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="camera-actions">
         {isUploading && (
-          <div className="upload-progress">
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${uploadProgress}%` }} />
-            </div>
+          <div className="progress-container">
+            <div className="progress-bar" style={{ width: `${uploadProgress}%` }}></div>
             <p>Uploading... {uploadProgress}%</p>
           </div>
         )}
-        <button className="btn btn-success btn-large" onClick={handleUploadPhotos} disabled={photos.length === 0 || isUploading}>
-          ✓ Upload Photos
+        <button className="btn btn-success btn-lg w-full" onClick={handleUpload} disabled={photos.length === 0 || isUploading}>
+          ✓ Upload All Photos
         </button>
-        <button className="btn btn-danger btn-large" onClick={handleEndSession} disabled={isUploading}>
+        <button className="btn btn-danger btn-lg w-full mt-2" onClick={onEndSession} disabled={isUploading}>
           End Session
         </button>
       </div>
