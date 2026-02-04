@@ -21,11 +21,10 @@ export default function CameraInterface({
   const [useCapacitor, setUseCapacitor] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
-  const [useSystemCamera, setUseSystemCamera] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const systemCameraRef = useRef<HTMLInputElement>(null);
+  const nativeCameraInputRef = useRef<HTMLInputElement>(null);
 
   // Check for Capacitor
   useEffect(() => {
@@ -42,9 +41,9 @@ export default function CameraInterface({
     checkCapacitor();
   }, []);
 
-  // Web Camera Initialization
+  // Web Camera Initialization (Try for live feed)
   useEffect(() => {
-    if (useCapacitor || useSystemCamera) return;
+    if (useCapacitor) return;
 
     let mounted = true;
     let stream: MediaStream | null = null;
@@ -52,21 +51,20 @@ export default function CameraInterface({
     const startCamera = async () => {
       try {
         if (!navigator.mediaDevices?.getUserMedia) {
-          throw new Error('Your browser does not support camera access.');
+          throw new Error('Live feed not supported');
         }
 
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: 'environment',
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
           },
           audio: false
         });
 
         if (mounted && videoRef.current) {
           videoRef.current.srcObject = stream;
-          // Wait for metadata to load to get dimensions
           videoRef.current.onloadedmetadata = () => {
             videoRef.current?.play().then(() => {
               if (mounted) {
@@ -75,21 +73,14 @@ export default function CameraInterface({
               }
             }).catch(err => {
               console.error('Play error:', err);
-              // Autoplay block? Show error so user can trigger manually
-              if (mounted) setCameraError('Tap to start camera feed');
             });
           };
         }
       } catch (err: any) {
-        console.error('Camera Init Error:', err);
+        console.warn('Live feed could not be started:', err);
         if (mounted) {
-          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-            setCameraError('Permission denied. Please allow camera access.');
-          } else {
-            setCameraError(err.message || 'Could not start camera.');
-          }
-          // Suggest system camera if web cam fails
-          setUseSystemCamera(true);
+          setIsCameraReady(false);
+          // Don't set error, just let it stay in loading/background state while native button is available
         }
       }
     };
@@ -102,9 +93,9 @@ export default function CameraInterface({
         stream.getTracks().forEach(t => t.stop());
       }
     };
-  }, [useCapacitor, useSystemCamera]);
+  }, [useCapacitor]);
 
-  const capturePhoto = () => {
+  const captureLivePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
@@ -126,12 +117,14 @@ export default function CameraInterface({
     }, 'image/jpeg', 0.9);
   };
 
-  const handleSystemCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNativeCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      const url = URL.createObjectURL(file);
-      setPhotos(prev => [...prev, url]);
+      const filesArray = Array.from(e.target.files);
+      const newUrls = filesArray.map(file => URL.createObjectURL(file));
+      setPhotos(prev => [...prev, ...newUrls]);
     }
+    // Reset input so the same file can be picked again if needed
+    if (nativeCameraInputRef.current) nativeCameraInputRef.current.value = '';
   };
 
   const captureWithCapacitor = async () => {
@@ -167,93 +160,98 @@ export default function CameraInterface({
   const handleUpload = async () => {
     const files: File[] = [];
     for (const url of photos) {
-      const res = await fetch(url);
-      const blob = await res.blob();
-      files.push(new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' }));
+      try {
+        const res = await fetch(url);
+        const blob = await res.blob();
+        files.push(new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' }));
+      } catch (e) {
+        console.error('Failed to process photo for upload:', e);
+      }
     }
     await onPhotosCapture(files);
     photos.forEach(url => URL.revokeObjectURL(url));
     setPhotos([]);
   };
 
-  const toggleCameraMode = () => {
-    setUseSystemCamera(!useSystemCamera);
-    setIsCameraReady(false);
-    setCameraError(null);
-  };
-
   return (
     <div className="camera-interface">
+      {/* 1. THE CAMERA AREA (Live Feed or Native Icon) */}
       <div className="camera-container">
         {useCapacitor ? (
-          <div className="native-camera-placeholder">
-            <span className="icon">📷</span>
-            <p>Native Mobile Mode</p>
-            <button className="btn btn-primary" onClick={captureWithCapacitor}>Take Photo</button>
-          </div>
-        ) : useSystemCamera ? (
-          <div className="system-camera-placeholder">
+          <div className="mode-placeholder">
             <span className="icon">�</span>
-            <p>Use your device's native camera app</p>
-            <button className="btn btn-primary btn-lg" onClick={() => systemCameraRef.current?.click()}>
-              Open System Camera
-            </button>
-            <button className="btn-text mt-4" onClick={toggleCameraMode} style={{ color: 'white' }}>
-              Switch to Live Browser Feed
+            <p>Mobile App Mode</p>
+            <button className="btn btn-primary btn-lg" onClick={captureWithCapacitor}>
+              Open Native Camera
             </button>
           </div>
         ) : !isCameraReady ? (
-          <div className="camera-loading">
-            {cameraError ? (
-              <div className="error-box">
-                <p>{cameraError}</p>
-                <button className="btn btn-secondary mt-4" onClick={() => window.location.reload()}>Retry</button>
-                <button className="btn-text mt-4 block" onClick={toggleCameraMode} style={{ color: 'white', display: 'block', margin: '1rem auto' }}>
-                  Use System Camera instead
-                </button>
-              </div>
-            ) : (
-              <div className="loading-box">
-                <div className="spinner"></div>
-                <p>Starting Live Feed...</p>
-              </div>
-            )}
+          <div className="mode-placeholder">
+            <div className="spinner"></div>
+            <p>Waiting for Live Feed...</p>
+            <p className="text-xs text-muted">Use button below to start immediately</p>
           </div>
         ) : (
           <div className="live-feed">
             <video ref={videoRef} className="camera-video" autoPlay playsInline muted />
-            <div className="feed-controls">
-              <button className="btn-capture" onClick={capturePhoto} aria-label="Capture"></button>
-              <button className="btn-switch-mode" onClick={toggleCameraMode} title="Use System Camera">
-                🔄
-              </button>
-            </div>
+            <button className="btn-capture" onClick={captureLivePhoto} aria-label="Capture"></button>
           </div>
         )}
       </div>
 
-      <input
-        type="file"
-        accept="image/*"
-        capture="environment"
-        ref={systemCameraRef}
-        style={{ display: 'none' }}
-        onChange={handleSystemCapture}
-      />
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
+      {/* 2. IMMEDIATE NATIVE ACCESS BUTTON - Labeled and Prominent */}
+      <div className="native-access-section animate-fade-in">
+        <button
+          className="btn btn-primary btn-lg native-shutter-btn"
+          onClick={() => nativeCameraInputRef.current?.click()}
+        >
+          <span className="btn-icon">📸</span>
+          CAPTURE PHOTO (Native App)
+        </button>
+        <p className="helper-text">Opens your phone's built-in camera app</p>
 
-      <div className="photos-preview">
-        <h3>Captured Photos ({photos.length})</h3>
-        <div className="preview-grid">
-          {photos.map((url, i) => (
-            <div key={i} className="preview-item">
-              <img src={url} alt="Preview" />
-              <button className="btn-remove" onClick={() => handleRemovePhoto(i)}>✕</button>
-            </div>
-          ))}
-        </div>
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          ref={nativeCameraInputRef}
+          style={{ display: 'none' }}
+          onChange={handleNativeCapture}
+          multiple // Allow multiple photos if browser supports it
+        />
       </div>
 
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+      {/* 3. PREVIEW SECTION */}
+      <div className="photos-preview">
+        <div className="preview-header">
+          <h3>Captured Photos ({photos.length})</h3>
+          {photos.length > 0 && (
+            <button className="btn-clear-all" onClick={() => {
+              photos.forEach(url => URL.revokeObjectURL(url));
+              setPhotos([]);
+            }}>Clear All</button>
+          )}
+        </div>
+
+        {photos.length === 0 ? (
+          <div className="empty-preview">
+            <p>No photos captured yet.</p>
+          </div>
+        ) : (
+          <div className="preview-grid">
+            {photos.map((url, i) => (
+              <div key={i} className="preview-item scale-in">
+                <img src={url} alt="Preview" />
+                <button className="btn-remove" onClick={() => handleRemovePhoto(i)}>✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 4. GLOBAL ACTIONS */}
       <div className="camera-actions">
         {isUploading && (
           <div className="progress-container">
@@ -262,10 +260,10 @@ export default function CameraInterface({
           </div>
         )}
         <button className="btn btn-success btn-lg w-full" onClick={handleUpload} disabled={photos.length === 0 || isUploading}>
-          ✓ Upload All Photos
+          ✓ SUBMIT ALL PHOTOS
         </button>
-        <button className="btn btn-danger btn-lg w-full mt-2" onClick={onEndSession} disabled={isUploading}>
-          End Session
+        <button className="btn-text mt-4" onClick={onEndSession} disabled={isUploading}>
+          Exit Session
         </button>
       </div>
     </div>
