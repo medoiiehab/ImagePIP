@@ -5,12 +5,20 @@ import './Header.css';
 
 interface HeaderProps {
   title?: string;
+  showLogout?: boolean;
 }
 
 export default function Header({
   title = 'Image Pipeline',
+  showLogout = false,
 }: HeaderProps) {
   const [userRole, setUserRole] = useState<string | null>(null);
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userRole');
+    window.location.href = '/login';
+  };
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
@@ -27,7 +35,11 @@ export default function Header({
           )}
         </div>
 
-
+        {showLogout && (
+          <button className="btn btn-secondary logout-btn" onClick={handleLogout}>
+            Logout
+          </button>
+        )}
       </div>
     </header>
   );
