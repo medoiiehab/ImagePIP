@@ -22,22 +22,10 @@ export default function CameraInterface({
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
 
   // ... (rest of useEffects)
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const newPhotos: string[] = [];
-      Array.from(e.target.files).forEach((file) => {
-        newPhotos.push(URL.createObjectURL(file));
-      });
-      setPhotos((prev) => [...prev, ...newPhotos]);
-    }
-    // Reset input
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
 
   // Check if Capacitor is available (native app)
   useEffect(() => {
@@ -58,29 +46,39 @@ export default function CameraInterface({
   useEffect(() => {
     if (useCapacitor || !videoRef.current) return;
 
+    let mounted = true;
+    let stream: MediaStream | null = null;
+
     const initCamera = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' },
+        console.log('Requesting camera stream...');
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
           audio: false,
         });
 
-        if (videoRef.current) {
+        if (mounted && videoRef.current) {
           videoRef.current.srcObject = stream;
+          // Ensure video plays
+          await videoRef.current.play().catch(e => console.error('Error playing video:', e));
           setIsCameraReady(true);
         }
       } catch (error) {
-        console.error('Camera access denied:', error);
-        // Fallback to file input if camera not available
+        console.error('Camera access denied or error:', error);
+        alert('Camera access denied. Please check your browser permissions.');
       }
     };
 
     initCamera();
 
     return () => {
-      if (videoRef.current?.srcObject) {
-        const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-        tracks.forEach((track) => track.stop());
+      mounted = false;
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
       }
     };
   }, [useCapacitor]);
@@ -101,6 +99,7 @@ export default function CameraInterface({
 
     if (!context) return;
 
+    // Use video actual dimensions
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
 
@@ -111,7 +110,7 @@ export default function CameraInterface({
         const url = URL.createObjectURL(blob);
         setPhotos((prev) => [...prev, url]);
       }
-    }, 'image/jpeg');
+    }, 'image/jpeg', 0.9);
   };
 
   const captureWithCapacitor = async () => {
@@ -143,31 +142,40 @@ export default function CameraInterface({
     return new Blob([bytes], { type: mimeType });
   };
 
-
-
   const handleRemovePhoto = (index: number) => {
+    const urlToRemove = photos[index];
+    URL.revokeObjectURL(urlToRemove);
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleUploadPhotos = async () => {
-    // Convert blob URLs to Files
+    setIsCameraReady(false); // Pause camera interaction during upload
     const photoFiles: File[] = [];
 
-    for (let i = 0; i < photos.length; i++) {
-      const url = photos[i];
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const file = new File([blob], `photo-${Date.now()}-${i}.jpg`, {
-        type: 'image/jpeg',
-      });
-      photoFiles.push(file);
-    }
+    try {
+      for (let i = 0; i < photos.length; i++) {
+        const url = photos[i];
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const file = new File([blob], `photo-${Date.now()}-${i}.jpg`, {
+          type: 'image/jpeg',
+        });
+        photoFiles.push(file);
+      }
 
-    onPhotosCapture(photoFiles);
+      await onPhotosCapture(photoFiles);
+
+      // Cleanup after successful upload trigger
+      photos.forEach(url => URL.revokeObjectURL(url));
+      setPhotos([]);
+    } catch (e) {
+      console.error('Upload preparation failed:', e);
+    } finally {
+      setIsCameraReady(true);
+    }
   };
 
   const handleEndSession = () => {
-    // Clean up URLs
     photos.forEach((url) => URL.revokeObjectURL(url));
     onEndSession();
   };
@@ -190,8 +198,9 @@ export default function CameraInterface({
           </div>
         ) : !isCameraReady ? (
           <div className="camera-loading">
+            <div className="spinner"></div>
             <p>Initializing Camera...</p>
-            <p className="text-muted text-sm">Please allow camera access</p>
+            <p className="text-muted text-sm">Please allow camera access in your browser</p>
           </div>
         ) : (
           <>
@@ -201,37 +210,16 @@ export default function CameraInterface({
               autoPlay
               playsInline
               muted
-              controls={false}
             />
             <button
-              className="btn btn-primary btn-capture"
+              className="btn-capture"
               onClick={capturePhotoFromCamera}
               disabled={!isCameraReady || isUploading}
-            >
-              📷 Capture
-            </button>
+              aria-label="Capture Photo"
+            ></button>
           </>
         )}
         <canvas ref={canvasRef} style={{ display: 'none' }} />
-
-        {/* Temporary File Upload for non-HTTPS dev */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          accept="image/*"
-          multiple
-          style={{ display: 'none' }}
-          onChange={handleFileSelect}
-        />
-        <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            📁 Upload from File (Temp)
-          </button>
-        </div>
       </div>
 
       <div className="photos-preview">
