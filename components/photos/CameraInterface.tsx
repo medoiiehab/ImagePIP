@@ -19,7 +19,6 @@ export default function CameraInterface({
 }: CameraInterfaceProps) {
   const [photos, setPhotos] = useState<string[]>([]);
   const [useCapacitor, setUseCapacitor] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -69,7 +68,7 @@ export default function CameraInterface({
             videoRef.current?.play().then(() => {
               if (mounted) {
                 setIsCameraReady(true);
-                setCameraError(null);
+
               }
             }).catch(err => {
               console.error('Play error:', err);
