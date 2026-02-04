@@ -168,3 +168,44 @@ a:hover {
 .input-error {
   border-color: var(--danger) !important;
 }
+
+/* Camera UI Styles */
+.camera-loading,
+.camera-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: white;
+  text-align: center;
+  padding: 2rem;
+}
+
+.camera-error {
+  background: rgba(185, 28, 28, 0.2);
+}
+
+.spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-left-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.w-full {
+  width: 100%;
+}
