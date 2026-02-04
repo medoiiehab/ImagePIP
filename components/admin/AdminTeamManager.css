@@ -1,0 +1,112 @@
+/* Corporate Admin Team Manager Styles */
+.admin-team-manager {
+  width: 100%;
+}
+
+.manager-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.team-form {
+  padding: 0.5rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.input-error {
+  border-color: var(--danger) !important;
+}
+
+/* Mobile stack logic */
+@media (max-width: 768px) {
+  .manager-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 1rem;
+  }
+
+  .manager-header h2 {
+    font-size: 1.5rem !important;
+  }
+
+  .manager-header button {
+    width: 100%;
+  }
+
+  /* Transform table to cards on mobile */
+  .premium-table,
+  .premium-table tbody,
+  .premium-table tr,
+  .premium-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .premium-table thead {
+    display: none;
+    /* Hide headers */
+  }
+
+  .premium-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid var(--border);
+    padding: 1rem;
+    background: white;
+  }
+
+  .premium-table td {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: right;
+  }
+
+  .premium-table td:last-child {
+    border-bottom: none;
+    justify-content: flex-end;
+    padding-top: 1rem;
+  }
+
+  /* Add labels via pseudo-elements */
+  .premium-table td:nth-of-type(1)::before {
+    content: "School Name";
+    font-weight: 600;
+    color: var(--text-muted);
+    float: left;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+  }
+
+  .premium-table td:nth-of-type(2)::before {
+    content: "UUID";
+    font-weight: 600;
+    color: var(--text-muted);
+    float: left;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+  }
+
+  .premium-table td:nth-of-type(3)::before {
+    content: "Status";
+    font-weight: 600;
+    color: var(--text-muted);
+    float: left;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+  }
+
+  .premium-table td:nth-of-type(4)::before {
+    content: "Actions";
+    font-weight: 600;
+    color: var(--text-muted);
+    float: left;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+  }
+}

@@ -1,0 +1,12 @@
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="admin-layout">
+      {/* Admin sidebar/navigation will be added here */}
+      <main>{children}</main>
+    </div>
+  );
+}

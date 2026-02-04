@@ -1,0 +1,118 @@
+/* Corporate Admin Stats */
+.admin-stats {
+  margin-bottom: 2rem;
+}
+
+.admin-stats h2 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.stat-card {
+  background: white;
+  border: 1px solid var(--border);
+  padding: 1.25rem;
+  /* Compact padding */
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stat-icon {
+  font-size: 1.5rem;
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: 0;
+  /* Square */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-main);
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+/* Remove colorful backgrounds, keep subtle indicators if needed */
+.stat-card {
+  border-left: 4px solid var(--border);
+}
+
+.stat-blue {
+  border-left-color: var(--primary);
+}
+
+.stat-warning {
+  border-left-color: var(--warning);
+}
+
+.stat-success {
+  border-left-color: var(--success);
+}
+
+.stat-info {
+  border-left-color: var(--secondary);
+}
+
+.stat-purple {
+  border-left-color: #334155;
+}
+
+.stat-pink {
+  border-left-color: #475569;
+}
+
+.stat-orange {
+  border-left-color: #64748b;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    /* 2 columns on mobile */
+    gap: 0.5rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .stat-icon {
+    font-size: 1.25rem;
+    padding: 0.5rem;
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+}

@@ -1,0 +1,51 @@
+.multi-school-selector {
+    margin-bottom: 1rem;
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border: 1px solid var(--border);
+}
+
+.school-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.school-tag {
+    background: white;
+    border: 1px solid var(--border);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-main);
+}
+
+.remove-school-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0 4px;
+    font-size: 1.25rem;
+    line-height: 0.8;
+    display: flex;
+    align-items: center;
+}
+
+.remove-school-btn:hover {
+    color: var(--danger);
+}
+
+.add-school-input {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.add-school-input input {
+    width: 120px !important;
+    /* Force smaller size */
+}

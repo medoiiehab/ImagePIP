@@ -1,0 +1,142 @@
+.photo-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+
+.photo-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.photo-card.selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.photo-card-checkbox {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 10;
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+}
+
+.photo-card-image-container {
+  position: relative;
+  aspect-ratio: 4/3;
+  background: var(--bg-secondary);
+}
+
+.photo-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-card-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 2rem;
+}
+
+.photo-card-status {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-pending {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+}
+
+.status-approved {
+  background: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+}
+
+.status-rejected {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+.status-migrated {
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+}
+
+.photo-card-content {
+  padding: 1rem;
+}
+
+.photo-card-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.photo-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.meta-item strong {
+  color: var(--text-main);
+}
+
+.photo-card-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.photo-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.photo-card-details {
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+.photo-card-details dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.375rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.photo-card-details dt {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.photo-card-details dd {
+  color: var(--text-main);
+  word-break: break-all;
+}

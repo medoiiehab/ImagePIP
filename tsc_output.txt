@@ -1,0 +1,6 @@
+app/api/auth/verify/route.ts(1,23): error TS6133: 'NextResponse' is declared but its value is never read.
+app/api/teams/route.ts(67,19): error TS6133: 'schoolUuid' is declared but its value is never read.
+components/admin/AdminSidebar.tsx(12,10): error TS6133: 'isMobile' is declared but its value is never read.
+components/common/Header.tsx(14,3): error TS6133: 'showLogout' is declared but its value is never read.
+components/common/Header.tsx(24,9): error TS6133: 'handleLogout' is declared but its value is never read.
+components/photos/PhotoCard.tsx(37,9): error TS6133: 'schoolUuid' is declared but its value is never read.

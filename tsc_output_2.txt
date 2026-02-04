@@ -1,0 +1,10 @@
+app/admin/dashboard/page.tsx(48,41): error TS2322: Type '{ title: string; showLogout: boolean; }' is not assignable to type 'IntrinsicAttributes & HeaderProps'.
+  Property 'showLogout' does not exist on type 'IntrinsicAttributes & HeaderProps'.
+app/admin/photos/page.tsx(38,42): error TS2322: Type '{ title: string; showLogout: boolean; }' is not assignable to type 'IntrinsicAttributes & HeaderProps'.
+  Property 'showLogout' does not exist on type 'IntrinsicAttributes & HeaderProps'.
+app/admin/settings/page.tsx(52,34): error TS2322: Type '{ title: string; showLogout: boolean; }' is not assignable to type 'IntrinsicAttributes & HeaderProps'.
+  Property 'showLogout' does not exist on type 'IntrinsicAttributes & HeaderProps'.
+app/admin/teams/page.tsx(36,41): error TS2322: Type '{ title: string; showLogout: boolean; }' is not assignable to type 'IntrinsicAttributes & HeaderProps'.
+  Property 'showLogout' does not exist on type 'IntrinsicAttributes & HeaderProps'.
+app/admin/users/page.tsx(36,41): error TS2322: Type '{ title: string; showLogout: boolean; }' is not assignable to type 'IntrinsicAttributes & HeaderProps'.
+  Property 'showLogout' does not exist on type 'IntrinsicAttributes & HeaderProps'.

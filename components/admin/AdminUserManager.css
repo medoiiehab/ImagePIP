@@ -1,0 +1,107 @@
+/* Corporate Admin User Manager Styles */
+.admin-user-manager {
+  width: 100%;
+}
+
+.manager-header {
+  /* Inherits form global or inline styles, but adding specific override here */
+}
+
+/* Identical mobile stacking logic */
+@media (max-width: 768px) {
+  .manager-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 1rem;
+  }
+
+  .manager-header h2 {
+    font-size: 1.5rem !important;
+  }
+
+  .manager-header button {
+    width: 100%;
+  }
+
+  .user-form {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .user-form>div {
+    grid-template-columns: 1fr !important;
+    /* Force single column form */
+  }
+
+  /* Table to Cards */
+  .premium-table thead {
+    display: none;
+  }
+
+  .premium-table tr {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border);
+    padding: 1rem;
+    background: white;
+  }
+
+  .premium-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f1f5f9;
+    text-align: right;
+    font-size: 0.875rem;
+  }
+
+  .premium-table td:last-child {
+    border-bottom: none;
+    margin-top: 0.5rem;
+    justify-content: stretch;
+  }
+
+  .premium-table td:last-child>div {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .premium-table td:last-child button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Data Labels */
+  .premium-table td:nth-of-type(1)::before {
+    content: "User ID";
+  }
+
+  .premium-table td:nth-of-type(2)::before {
+    content: "School";
+  }
+
+  .premium-table td:nth-of-type(3)::before {
+    content: "Role";
+  }
+
+  .premium-table td:nth-of-type(4)::before {
+    content: "Date";
+  }
+
+  .premium-table td:nth-of-type(5)::before {
+    content: "Actions";
+  }
+}
+
+.badge-school {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-family: monospace;
+}

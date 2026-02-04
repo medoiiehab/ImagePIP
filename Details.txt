@@ -1,0 +1,25 @@
+Final Project Specification: Image Pipeline System
+1. Project Overview
+This application is a streamlined image intake system designed for schools and teams. It utilizes a "Hot-to-Cold" storage pipeline moving data from Supabase to Google Drive after Admin approval.
+
+2. Authentication & User Roles
+•	The system utilizes a specialized 3-field login system to ensure precise data routing.
+•	Admin: Full control over Teams/Schools. Can create/edit/delete teams, manage user accounts, and approve/delete photos in a grid view.
+•	Team Member (Client): Restricted access. Login requires: School/Team UUID, User UUID, and Password. Interface is limited to a camera and an "End Session" button.
+•	Third-Party Company: Viewer-only access to final Google Drive folders.
+3. Core Workflow
+1.	Capture: Client logs in, takes photos, and hits "End Session". Photos are stored in specific team buckets in Supabase.
+2.	Review: Admin views photos in a grid. Admin can delete photos or approve them in bulk.
+3.	Migration: Approved photos are migrated to Google Drive by Supabase Edge Functions. Folders are created or renamed automatically on Drive to match Team/School names.
+4.	Cleanup: Original files are deleted from Supabase after successful migration to maintain zero-cost storage.
+5.	Access: Third-party companies view the approved photos via Google Drive links.
+4. Technical Stack
+•	Frontend: React / Next.js + Capacitor.js (Web & APK) & ShadCN-UI for UI
+•	Hosting: GitHub Pages (Free implementation)
+•	Backend/Database: Supabase (PostgreSQL)
+•	Automation: Supabase Edge Functions (Deno/TypeScript)
+•	Final Storage: Google Drive API (Utilizing free tier quota)
+
+
+the Clients Are UUID and password (the UUID are Auto Generated starting from 1000 and iterates by 5 and the password is P{UUID} example User1 : 1000 , P1000 and then the client should be connected to a team/school via UUID of that school)
+the client logs in using the UUID and password and UUID of the School that the admin created for him and others, then the client can use the camera to take photos and upload them to the supabase bucket of the team/school and then the admin can approve them in the grid view and then the photos will be migrated to google drive and the original files will be deleted from supabase
