@@ -90,7 +90,7 @@ export const uploadToGoogleDrive = async (
             requestBody: fileMetadata,
             media: media,
             fields: 'id, webViewLink',
-            supportsTeamDrives: true,
+            supportsAllDrives: true, // ✅ CORRECT
         });
 
         console.log('[Drive Upload] Response status:', response.status);
@@ -173,12 +173,12 @@ export const findOrCreateFolder = async (
         }
 
         console.log('[Drive Folder] 🔍 Searching for existing folder...');
-        const listRes = await drive.files.list({
+       const listRes = await drive.files.list({
             q: query,
             fields: 'files(id, name)',
-            corpora: 'teamDrive',
-            includeTeamDriveItems: true,
-            supportsTeamDrives: true,
+            corpora: 'allDrives', // ✅ CORRECT
+            includeItemsFromAllDrives: true, // ✅ CORRECT
+            supportsAllDrives: true, // ✅ CORRECT
         });
 
         console.log('[Drive Folder] Search result: ', listRes.data.files?.length || 0, 'folders found');
@@ -199,10 +199,10 @@ export const findOrCreateFolder = async (
             fileMetadata.parents = [parentFolderId];
         }
 
-        const createRes = await drive.files.create({
+      const createRes = await drive.files.create({
             requestBody: fileMetadata,
             fields: 'id',
-            supportsTeamDrives: true,
+            supportsAllDrives: true, // ✅ CORRECT
             includePermissionsForView: 'published',
         });
 
