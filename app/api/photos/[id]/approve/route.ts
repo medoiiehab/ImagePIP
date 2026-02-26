@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { authenticateRequest, successResponse, errorResponse, checkRole } from '@/lib/auth/middleware';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase-server';
 
 export async function POST(
   request: NextRequest,
@@ -25,7 +25,7 @@ export async function POST(
       .from('photos')
       .select(`
         *,
-        school:school_uuid (
+        teams:school_uuid (
           name
         )
       `)
@@ -63,18 +63,19 @@ export async function POST(
         
         let targetFolderId = rootFolderId;
 
-        // 2. Organize by School Name
-        const schoolName = photo.school?.name || 'Uncategorized';
-        console.log('[Approve] School Name:', schoolName);
+        // 2. Organize by Team Name
+        const teamName = photo.teams?.name || 'Uncategorized';
+        console.log('[Approve] Team Name:', teamName);
 
-        if (rootFolderId && schoolName) {
-          console.log('[Approve] Creating/finding school subfolder:', schoolName, 'in parent:', rootFolderId);
-          const subFolderId = await findOrCreateFolder(schoolName, rootFolderId);
+        if (rootFolderId && teamName) {
+          console.log('[Approve] Creating/finding team subfolder:', teamName, 'in parent:', rootFolderId);
+          const subFolderId = await findOrCreateFolder(teamName, rootFolderId);
           if (subFolderId) {
-            console.log('[Approve] School subfolder created/found:', subFolderId);
+            console.log('[Approve] Team subfolder created/found:', subFolderId);
             targetFolderId = subFolderId;
           } else {
-            console.warn('[Approve] Failed to create/find school subfolder, using root folder');
+            console.warn('[Approve] Failed to create/find team subfolder, using root folder:', rootFolderId);
+            targetFolderId = rootFolderId;
           }
         }
 

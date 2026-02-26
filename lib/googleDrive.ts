@@ -87,16 +87,21 @@ export const findOrCreateFolder = async (
 ): Promise<string | null> => {
     try {
         const authClient = getAuthClient();
-        if (!authClient) return null;
+        if (!authClient) {
+            console.error('[Drive Folder] No auth client available');
+            return null;
+        }
 
         const drive = google.drive({ version: 'v3', auth: authClient });
 
         // 1. Search for existing folder
-        // Query: name = 'folderName' and mimeType = 'application/vnd.google-apps.folder' and 'parentId' in parents and trashed = false
         let query = `mimeType='application/vnd.google-apps.folder' and name='${folderName.replace(/'/g, "\\'")}' and trashed=false`;
         if (parentFolderId) {
             query += ` and '${parentFolderId}' in parents`;
         }
+
+        console.log('[Drive Folder] Searching for folder:', folderName, 'in parent:', parentFolderId);
+        console.log('[Drive Folder] Query:', query);
 
         const listRes = await drive.files.list({
             q: query,
@@ -104,12 +109,15 @@ export const findOrCreateFolder = async (
             spaces: 'drive',
         });
 
+        console.log('[Drive Folder] Search result:', listRes.data.files?.length, 'folders found');
+
         if (listRes.data.files && listRes.data.files.length > 0) {
-            // Folder exists
+            console.log('[Drive Folder] Folder exists, ID:', listRes.data.files[0].id);
             return listRes.data.files[0].id || null;
         }
 
         // 2. Create folder if not found
+        console.log('[Drive Folder] Creating new folder:', folderName);
         const fileMetadata: any = {
             name: folderName,
             mimeType: 'application/vnd.google-apps.folder',
@@ -124,15 +132,14 @@ export const findOrCreateFolder = async (
             fields: 'id',
         });
 
+        console.log('[Drive Folder] Folder created, ID:', createRes.data.id);
         return createRes.data.id || null;
 
-    } catch (error) {
-        console.error('Error finding/creating Drive folder:', error);
-        if (error instanceof Error) {
-            console.error('[Folder Error Message]:', error.message);
+    } catch (error: any) {
+        console.error('[Drive Folder] Error finding/creating folder:', error.message);
+        if (error.response?.data) {
+            console.error('[Drive Folder API Error]:', JSON.stringify(error.response.data, null, 2));
         }
-        // Fallback: If we can't create the subfolder, maybe return parentId? 
-        // Or just throw/return null to skip organization.
         return null;
     }
 };

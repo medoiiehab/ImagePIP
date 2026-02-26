@@ -24,21 +24,6 @@ export async function GET(request: NextRequest) {
       .from('photos')
       .select(`
         *,
-        schools:school_uuid (
-          uuid,
-          name
-        )
-      `)
-    // Note: Relation name might need to be explicitly defined if Supabase doesn't auto-detect 'teams' as 'schools' alias.
-    // But since we are looking up by school_uuid which references teams(uuid), we should use the actual table name 'teams'.
-    // However, to keep frontend compatibility, we can alias it or update the frontend.
-    // Let's update the query to reference 'teams' and map it manually.
-
-    // Re-writing query properly:
-    query = supabase
-      .from('photos')
-      .select(`
-        *,
         teams:school_uuid (
           uuid,
           name
