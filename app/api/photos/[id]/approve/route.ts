@@ -55,10 +55,14 @@ export async function POST(
 
         // Root Folder from Env
         const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+        console.log('[Approve] ========== GOOGLE DRIVE PROCESS STARTED ==========');
         console.log('[Approve] Root Folder ID from env:', rootFolderId);
+        console.log('[Approve] GOOGLE_DRIVE_FOLDER_ID value:', process.env.GOOGLE_DRIVE_FOLDER_ID);
+        console.log('[Approve] All env vars keys:', Object.keys(process.env).filter(k => k.includes('GOOGLE')));
         
         if (!rootFolderId) {
-          console.warn('[Approve] GOOGLE_DRIVE_FOLDER_ID not set in environment variables');
+          console.warn('[Approve] ❌ GOOGLE_DRIVE_FOLDER_ID not set in environment variables - SKIPPING DRIVE UPLOAD');
+          driveUploadError = new Error('GOOGLE_DRIVE_FOLDER_ID not configured');
         }
         
         let targetFolderId = rootFolderId;
@@ -68,26 +72,30 @@ export async function POST(
         console.log('[Approve] Team Name:', teamName);
 
         if (rootFolderId && teamName) {
-          console.log('[Approve] Creating/finding team subfolder:', teamName, 'in parent:', rootFolderId);
+          console.log('[Approve] 📁 Attempting to create/find team subfolder:', teamName, 'in parent:', rootFolderId);
           const subFolderId = await findOrCreateFolder(teamName, rootFolderId);
           if (subFolderId) {
-            console.log('[Approve] Team subfolder created/found:', subFolderId);
+            console.log('[Approve] ✅ Team subfolder created/found:', subFolderId);
             targetFolderId = subFolderId;
           } else {
-            console.warn('[Approve] Failed to create/find team subfolder, using root folder:', rootFolderId);
+            console.warn('[Approve] ❌ Failed to create/find team subfolder, using root folder');
             targetFolderId = rootFolderId;
           }
         }
 
         // 3. Upload to Target Folder
-        console.log('[Approve] Uploading file to Drive. File:', photo.file_name, 'Size:', buffer.length, 'Target Folder:', targetFolderId);
+        console.log('[Approve] 📤 Uploading file to Drive. File:', photo.file_name, 'Size:', buffer.length, 'Target Folder:', targetFolderId);
         driveData = await uploadToGoogleDrive(
           buffer,
           photo.file_name,
           photo.mime_type || 'image/jpeg',
           targetFolderId
         );
-        console.log('[Approve] Drive upload successful:', driveData?.id);
+        if (driveData?.id) {
+          console.log('[Approve] ✅ Drive upload successful! File ID:', driveData.id);
+        } else {
+          console.warn('[Approve] ⚠️ Drive upload returned null');
+        }
       } catch (err) {
         console.error('Drive upload failed:', err);
         driveUploadError = err;
