@@ -2,7 +2,7 @@ import { google } from 'googleapis';
 import { Readable } from 'stream';
 
 // Initialize Google Auth
-const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
+const SCOPES = ['https://www.googleapis.com/auth/drive'];
 
 const getAuthClient = () => {
     console.log('\n========== [Drive Auth] Starting initialization ==========');
@@ -27,7 +27,7 @@ const getAuthClient = () => {
             privateKey,
             SCOPES
         );
-        console.log('[Drive Auth] ✅ JWT auth client created successfully\n');
+        console.log('[Drive Auth] ✅ JWT auth client created');
         return authClient;
     } catch (err: any) {
         console.error('[Drive Auth] ❌ Failed to create JWT:', err.message);
@@ -42,8 +42,31 @@ export const uploadToGoogleDrive = async (
     folderId?: string
 ): Promise<{ id: string; webViewLink: string } | null> => {
     try {
+        console.log('\n========== [Drive Upload] Starting file upload ==========');
+        console.log('[Drive Upload] File:', fileName, 'Size:', fileBuffer.length, 'bytes');
+        console.log('[Drive Upload] MIME Type:', mimeType);
+        console.log('[Drive Upload] Target folder ID:', folderId);
+        
         const authClient = getAuthClient();
-        if (!authClient) return null;
+        if (!authClient) {
+            console.error('[Drive Upload] ❌ Failed to get auth client');
+            return null;
+        }
+        console.log('[Drive Upload] ✅ Auth client ready');
+
+        // Verify token works for upload too
+        try {
+            console.log('[Drive Upload] 🔐 Verifying access token...');
+            const { token } = await authClient.getAccessToken();
+            if (!token) {
+                console.error('[Drive Upload] ❌ No access token available for upload');
+                return null;
+            }
+            console.log('[Drive Upload] ✅ Access token verified');
+        } catch (tokenErr: any) {
+            console.error('[Drive Upload] ❌ Token error:', tokenErr.message);
+            return null;
+        }
 
         const drive = google.drive({ version: 'v3', auth: authClient });
 
@@ -61,7 +84,7 @@ export const uploadToGoogleDrive = async (
             body: Readable.from(fileBuffer),
         };
 
-        console.log(`[Drive] Uploading ${fileName} (${fileBuffer.length} bytes) to folder ${folderId}`);
+        console.log('[Drive Upload] 📤 Uploading to Drive...');
 
         const response = await drive.files.create({
             requestBody: fileMetadata,
@@ -69,24 +92,25 @@ export const uploadToGoogleDrive = async (
             fields: 'id, webViewLink',
         });
 
-        console.log('[Drive] Upload response:', response.status, response.data);
+        console.log('[Drive Upload] Response status:', response.status);
+        console.log('[Drive Upload] Response data:', JSON.stringify(response.data, null, 2));
 
         if (response.data.id) {
+            console.log('[Drive Upload] ✅ File uploaded successfully! ID:', response.data.id);
             return {
                 id: response.data.id,
                 webViewLink: response.data.webViewLink || '',
             };
+        } else {
+            console.warn('[Drive Upload] ⚠️ Upload completed but no file ID returned');
+            return null;
         }
-
-        return null;
     } catch (error: any) {
-        console.error('Error uploading to Google Drive:', error);
-        if (error.response) {
-            console.error('[Drive API Error Data]:', JSON.stringify(error.response.data, null, 2));
-            console.error('[Drive API Error Status]:', error.response.status);
-        }
-        if (error.message) {
-            console.error('[Drive Error Message]:', error.message);
+        console.error('\n[Drive Upload] ❌ Upload failed!');
+        console.error('[Drive Upload] Error message:', error.message);
+        if (error.response?.data) {
+            console.error('[Drive Upload] API Error:', JSON.stringify(error.response.data, null, 2));
+            console.error('[Drive Upload] Status code:', error.response.status);
         }
         throw error;
     }
@@ -107,6 +131,37 @@ export const findOrCreateFolder = async (
             return null;
         }
         console.log('[Drive Folder] Auth client ready');
+
+        // Try to get an access token to verify auth works
+        let tokenOk = false;
+        try {
+            console.log('[Drive Folder] 🔐 Attempting to get access token...');
+            const { token } = await authClient.getAccessToken();
+            if (token) {
+                console.log('[Drive Folder] ✅ Access token obtained successfully');
+                console.log('[Drive Folder] Token (first 30 chars):', token.substring(0, 30) + '...');
+                tokenOk = true;
+            } else {
+                console.error('[Drive Folder] ❌ No access token in credentials response');
+                return null;
+            }
+        } catch (tokenErr: any) {
+            console.error('[Drive Folder] ❌ Failed to get access token:', tokenErr.message);
+            console.error('[Drive Folder] Error code:', tokenErr.code);
+            console.error('[Drive Folder] Full error:', JSON.stringify({
+                message: tokenErr.message,
+                code: tokenErr.code,
+                statusCode: tokenErr.statusCode,
+                status: tokenErr.status,
+            }, null, 2));
+            return null;
+        }
+
+        if (!tokenOk) {
+            console.error('[Drive Folder] ❌ Token verification failed');
+            return null;
+        }
+        console.log('[Drive Folder] ✅ Auth verification complete - proceeding with API calls');
 
         const drive = google.drive({ version: 'v3', auth: authClient });
 
@@ -159,6 +214,7 @@ export const findOrCreateFolder = async (
         if (error.response?.data) {
             console.error('[Drive Folder] API Error Details:', JSON.stringify(error.response.data, null, 2));
         }
+        console.error('[Drive Folder] Full error:', JSON.stringify(error, null, 2));
         return null;
     }
 };
