@@ -96,23 +96,36 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    console.log('[Upload] POST request received');
+    
     const formData = await request.formData();
+    console.log('[Upload] FormData keys:', Array.from(formData.keys()));
+    
     const file = formData.get('file') as any;
     const schoolUuid = user.schoolUuid || formData.get('schoolUuid');
 
+    console.log('[Upload] File received:', !!file, 'Type:', file?.type || 'unknown');
+    console.log('[Upload] School UUID:', schoolUuid, 'User ID:', user.id);
+
     if (!file) {
+      console.error('[Upload] NO FILE RECEIVED');
       return errorResponse('File is required');
     }
 
     if (!schoolUuid) {
+      console.error('[Upload] NO SCHOOL UUID');
       return errorResponse('School UUID is required. Please log in again.');
     }
 
     // Ensure we have a binary Buffer for server-side upload
     let uploadPayload: Buffer | File | Blob = file;
     if (typeof file.arrayBuffer === 'function') {
+      console.log('[Upload] Converting File to Buffer...');
       const arrayBuffer = await file.arrayBuffer();
       uploadPayload = Buffer.from(arrayBuffer);
+      console.log('[Upload] Buffer created, size:', uploadPayload.length);
+    } else {
+      console.log('[Upload] File is already a Buffer or Blob, size:', file.size || 'unknown');
     }
 
     // Generate unique file path
@@ -121,20 +134,26 @@ export async function POST(request: NextRequest) {
     const fileName = `${schoolUuid}/${timestamp}-${safeName}`;
 
     console.log(`[Upload] Starting upload for file: ${file.name}, path: ${fileName}, size: ${file.size}`);
+    console.log('[Upload] Supabase URL configured:', !!process.env.SUPABASE_URL);
+    console.log('[Upload] Supabase Key configured:', !!process.env.SUPABASE_ANON_KEY);
 
     // Upload file to Supabase Storage using server client
-    const { error: uploadError } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from('photos')
       .upload(fileName, uploadPayload, {
         contentType: file.type || 'application/octet-stream',
       });
 
     if (uploadError) {
-      console.error('Upload error:', uploadError);
-      return errorResponse(`Storage error: ${uploadError.message}`, 500);
+      console.error('[Upload] STORAGE ERROR:', {
+        message: uploadError.message,
+        statusCode: (uploadError as any).statusCode,
+        error: uploadError,
+      });
+      return errorResponse(`Storage error: ${uploadError.message} (${(uploadError as any).statusCode})`, 500);
     }
 
-    console.log(`[Upload] File uploaded successfully: ${fileName}`);
+    console.log(`[Upload] File uploaded successfully:`, uploadData);
 
     // Get public URL
     const { data: urlData } = supabase.storage
