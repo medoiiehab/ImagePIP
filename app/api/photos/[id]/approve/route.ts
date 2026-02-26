@@ -55,25 +55,38 @@ export async function POST(
 
         // Root Folder from Env
         const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+        console.log('[Approve] Root Folder ID from env:', rootFolderId);
+        
+        if (!rootFolderId) {
+          console.warn('[Approve] GOOGLE_DRIVE_FOLDER_ID not set in environment variables');
+        }
+        
         let targetFolderId = rootFolderId;
 
         // 2. Organize by School Name
         const schoolName = photo.school?.name || 'Uncategorized';
+        console.log('[Approve] School Name:', schoolName);
 
         if (rootFolderId && schoolName) {
+          console.log('[Approve] Creating/finding school subfolder:', schoolName, 'in parent:', rootFolderId);
           const subFolderId = await findOrCreateFolder(schoolName, rootFolderId);
           if (subFolderId) {
+            console.log('[Approve] School subfolder created/found:', subFolderId);
             targetFolderId = subFolderId;
+          } else {
+            console.warn('[Approve] Failed to create/find school subfolder, using root folder');
           }
         }
 
         // 3. Upload to Target Folder
+        console.log('[Approve] Uploading file to Drive. File:', photo.file_name, 'Size:', buffer.length, 'Target Folder:', targetFolderId);
         driveData = await uploadToGoogleDrive(
           buffer,
           photo.file_name,
           photo.mime_type || 'image/jpeg',
           targetFolderId
         );
+        console.log('[Approve] Drive upload successful:', driveData?.id);
       } catch (err) {
         console.error('Drive upload failed:', err);
         driveUploadError = err;
@@ -111,11 +124,14 @@ export async function POST(
     return successResponse({
       success: true,
       photo: updatedPhoto,
-      driveStatus: driveData ? 'uploaded' : 'skipped_or_failed',
+      driveStatus: driveData ? 'uploaded' : (driveUploadError ? 'failed' : 'skipped'),
+      driveFileId: driveData?.id || null,
       driveError: driveUploadError ? String(driveUploadError) : null,
       message: driveData
-        ? 'Photo approved and uploaded to Drive'
-        : 'Photo approved (Drive upload skipped or failed)',
+        ? `Photo approved and uploaded to Drive (ID: ${driveData.id})`
+        : (driveUploadError 
+          ? `Photo approved but Drive upload failed: ${String(driveUploadError)}`
+          : 'Photo approved (Drive upload skipped)'),
     });
   } catch (error) {
     console.error('Error approving photo:', error);

@@ -10,10 +10,12 @@ const getAuthClient = () => {
     const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
     if (!clientEmail || !privateKey) {
+        console.error('[Drive Auth] Missing credentials - Email:', !!clientEmail, 'Key:', !!privateKey);
         console.warn('Google Drive credentials missing. Skipping Drive upload.');
         return null;
     }
 
+    console.log('[Drive Auth] Initializing JWT with service account:', clientEmail);
     return new google.auth.JWT(
         clientEmail,
         undefined,
@@ -70,6 +72,10 @@ export const uploadToGoogleDrive = async (
         console.error('Error uploading to Google Drive:', error);
         if (error.response) {
             console.error('[Drive API Error Data]:', JSON.stringify(error.response.data, null, 2));
+            console.error('[Drive API Error Status]:', error.response.status);
+        }
+        if (error.message) {
+            console.error('[Drive Error Message]:', error.message);
         }
         throw error;
     }
@@ -122,6 +128,9 @@ export const findOrCreateFolder = async (
 
     } catch (error) {
         console.error('Error finding/creating Drive folder:', error);
+        if (error instanceof Error) {
+            console.error('[Folder Error Message]:', error.message);
+        }
         // Fallback: If we can't create the subfolder, maybe return parentId? 
         // Or just throw/return null to skip organization.
         return null;
