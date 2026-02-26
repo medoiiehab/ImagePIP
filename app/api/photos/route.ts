@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { authenticateRequest, successResponse, errorResponse, checkRole } from '@/lib/auth/middleware';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase-server';
 
 export async function GET(request: NextRequest) {
   const { valid, user, error } = authenticateRequest(request);
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get('file') as any;
     const schoolUuid = user.schoolUuid || formData.get('schoolUuid');
 
     if (!file) {
@@ -108,20 +108,33 @@ export async function POST(request: NextRequest) {
       return errorResponse('School UUID is required. Please log in again.');
     }
 
+    // Ensure we have a binary Buffer for server-side upload
+    let uploadPayload: Buffer | File | Blob = file;
+    if (typeof file.arrayBuffer === 'function') {
+      const arrayBuffer = await file.arrayBuffer();
+      uploadPayload = Buffer.from(arrayBuffer);
+    }
+
     // Generate unique file path
     const timestamp = Date.now();
-    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const safeName = (file.name || `upload-${timestamp}`).replace(/[^a-zA-Z0-9.-]/g, '_');
     const fileName = `${schoolUuid}/${timestamp}-${safeName}`;
 
-    // Upload file to Supabase Storage
+    console.log(`[Upload] Starting upload for file: ${file.name}, path: ${fileName}, size: ${file.size}`);
+
+    // Upload file to Supabase Storage using server client
     const { error: uploadError } = await supabase.storage
       .from('photos')
-      .upload(fileName, file);
+      .upload(fileName, uploadPayload, {
+        contentType: file.type || 'application/octet-stream',
+      });
 
     if (uploadError) {
       console.error('Upload error:', uploadError);
       return errorResponse(`Storage error: ${uploadError.message}`, 500);
     }
+
+    console.log(`[Upload] File uploaded successfully: ${fileName}`);
 
     // Get public URL
     const { data: urlData } = supabase.storage
@@ -154,6 +167,8 @@ export async function POST(request: NextRequest) {
       await supabase.storage.from('photos').remove([fileName]);
       return errorResponse(`Database error: ${insertError.message}`, 500);
     }
+
+    console.log(`[Upload] Photo record created in database: ${newPhoto?.[0]?.id}`);
 
     return successResponse(
       {
