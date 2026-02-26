@@ -90,6 +90,7 @@ export const uploadToGoogleDrive = async (
             requestBody: fileMetadata,
             media: media,
             fields: 'id, webViewLink',
+            supportsTeamDrives: true,
         });
 
         console.log('[Drive Upload] Response status:', response.status);
@@ -176,6 +177,7 @@ export const findOrCreateFolder = async (
             q: query,
             fields: 'files(id, name)',
             spaces: 'drive',
+            supportsTeamDrives: true,
         });
 
         console.log('[Drive Folder] Search result: ', listRes.data.files?.length || 0, 'folders found');
@@ -199,6 +201,7 @@ export const findOrCreateFolder = async (
         const createRes = await drive.files.create({
             requestBody: fileMetadata,
             fields: 'id',
+            supportsTeamDrives: true,
         });
 
         if (createRes.data.id) {
