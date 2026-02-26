@@ -176,7 +176,8 @@ export const findOrCreateFolder = async (
         const listRes = await drive.files.list({
             q: query,
             fields: 'files(id, name)',
-            spaces: 'drive',
+            corpora: 'teamDrive',
+            includeTeamDriveItems: true,
             supportsTeamDrives: true,
         });
 
@@ -202,6 +203,7 @@ export const findOrCreateFolder = async (
             requestBody: fileMetadata,
             fields: 'id',
             supportsTeamDrives: true,
+            includePermissionsForView: 'published',
         });
 
         if (createRes.data.id) {
