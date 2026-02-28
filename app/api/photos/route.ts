@@ -145,16 +145,34 @@ export async function POST(request: NextRequest) {
       .from('photos')
       .getPublicUrl(fileName);
 
+    // Fetch school name and drive folder id from 'teams' table
+    let teamData = null;
+
+    try {
+      const { data: teamInfo } = await supabase
+        .from('teams')
+        .select('name, google_drive_folder_id, uuid')
+        .eq('uuid', schoolUuid)
+        .single();
+
+      if (teamInfo) {
+        teamData = teamInfo;
+      }
+    } catch (err) {
+      console.warn('Could not fetch team info for folder naming');
+    }
+
     // Check for auto-approval setting
     let isAutoApproved = false;
     try {
       const { data: settings, error: settingsError } = await supabase
         .from('system_settings')
         .select('auto_approval')
-        .eq('id', 1);
+        .eq('id', 1)
+        .maybeSingle();
 
-      if (!settingsError && settings && settings.length > 0) {
-        isAutoApproved = settings[0].auto_approval || false;
+      if (!settingsError && settings) {
+        isAutoApproved = settings.auto_approval || false;
       }
     } catch (err) {
       console.warn('Could not check auto_approval setting, defaulting to false');
@@ -190,18 +208,81 @@ export async function POST(request: NextRequest) {
       return errorResponse(`Database error: ${insertError.message}`, 500);
     }
 
-    console.log(`[Upload] Photo record created in database: ${newPhoto?.[0]?.id}`);
+    const photoRecord = newPhoto?.[0];
+    console.log(`[Upload] Photo record created in database: ${photoRecord?.id}`);
+
+    // DRIVE MIGRATION for Auto-Approved photos
+    if (isAutoApproved && photoRecord) {
+      // Run migration in background (don't await to keep upload snappy)
+      triggerDriveMigration(photoRecord, teamData);
+    }
 
     return successResponse(
       {
         success: true,
-        photo: newPhoto ? newPhoto[0] : null,
-        message: 'Photo uploaded successfully',
+        photo: photoRecord,
+        autoApproved: isAutoApproved,
+        message: isAutoApproved
+          ? 'Photo uploaded and auto-approved!'
+          : 'Photo uploaded successfully, pending approval',
       },
       201
     );
   } catch (error: any) {
     console.error('Error uploading photo:', error);
     return errorResponse(error?.message || 'Internal server error', 500);
+  }
+}
+
+/**
+ * Background Drive Migration for Auto-Approved Photos
+ */
+async function triggerDriveMigration(photo: any, team: any) {
+  try {
+    console.log('[Auto-Drive] Starting migration for auto-approved photo:', photo.id);
+    const { uploadToGoogleDrive, findOrCreateFolder } = await import('@/lib/googleDrive');
+
+    // Root Folder
+    const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+    if (!rootFolderId) return;
+
+    // Resolve Target Folder
+    let targetFolderId = rootFolderId;
+    if (team) {
+      if (team.google_drive_folder_id) {
+        targetFolderId = team.google_drive_folder_id;
+      } else {
+        const folderId = await findOrCreateFolder(team.name, rootFolderId);
+        if (folderId) {
+          targetFolderId = folderId;
+          // Cache it
+          await supabase.from('teams').update({ google_drive_folder_id: folderId }).eq('uuid', team.uuid);
+        }
+      }
+    }
+
+    // Download from Supabase
+    const { data: fileData } = await supabase.storage.from('photos').download(photo.file_path);
+    if (!fileData) return;
+
+    const buffer = Buffer.from(await fileData.arrayBuffer());
+
+    // Upload to Drive
+    const driveData = await uploadToGoogleDrive(
+      buffer,
+      photo.file_name,
+      photo.mime_type || 'image/jpeg',
+      targetFolderId
+    );
+
+    if (driveData) {
+      await supabase.from('photos').update({
+        migrated_to_google_drive: true,
+        google_drive_id: driveData.id
+      }).eq('id', photo.id);
+      console.log('[Auto-Drive] ✅ Auto-approved photo migrated to Drive successfully');
+    }
+  } catch (err) {
+    console.error('[Auto-Drive] ❌ Migration failed:', err);
   }
 }

@@ -9,7 +9,6 @@ export async function POST(
   const { id } = await params;
   const { valid, user, error } = authenticateRequest(request);
 
-
   if (!valid || !user) {
     return errorResponse(error || 'Unauthorized', 401);
   }
@@ -21,12 +20,15 @@ export async function POST(
   try {
     const photoId = id;
 
+    // Fetch photo with its Team (School) context
     const { data: photo, error: fetchError } = await supabase
       .from('photos')
       .select(`
         *,
         teams:school_uuid (
-          name
+          uuid,
+          name,
+          google_drive_folder_id
         )
       `)
       .eq('id', photoId)
@@ -36,76 +38,10 @@ export async function POST(
       return errorResponse('Photo not found', 404);
     }
 
-    // NEW: Upload to Google Drive
-    // 1. Download file from Supabase
-    const { data: fileData, error: downloadError } = await supabase.storage
-      .from('photos')
-      .download(photo.file_path);
+    // Attempt migration to Google Drive
+    const driveData = await migrateToDrive(photo);
 
-    let driveData = null;
-    let driveUploadError = null;
-
-    if (!downloadError && fileData) {
-      try {
-        const arrayBuffer = await fileData.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-
-        // Import dynamically
-        const { uploadToGoogleDrive, findOrCreateFolder } = await import('@/lib/googleDrive');
-
-        // Root Folder from Env
-        const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-        console.log('[Approve] ========== GOOGLE DRIVE PROCESS STARTED ==========');
-        console.log('[Approve] Root Folder ID from env:', rootFolderId);
-        console.log('[Approve] GOOGLE_DRIVE_FOLDER_ID value:', process.env.GOOGLE_DRIVE_FOLDER_ID);
-        console.log('[Approve] All env vars keys:', Object.keys(process.env).filter(k => k.includes('GOOGLE')));
-        
-        if (!rootFolderId) {
-          console.warn('[Approve] ❌ GOOGLE_DRIVE_FOLDER_ID not set in environment variables - SKIPPING DRIVE UPLOAD');
-          driveUploadError = new Error('GOOGLE_DRIVE_FOLDER_ID not configured');
-        }
-        
-        let targetFolderId = rootFolderId;
-
-        // 2. Organize by Team Name
-        const teamName = photo.teams?.name || 'Uncategorized';
-        console.log('[Approve] Team Name:', teamName);
-
-        if (rootFolderId && teamName) {
-          console.log('[Approve] 📁 Attempting to create/find team subfolder:', teamName, 'in parent:', rootFolderId);
-          const subFolderId = await findOrCreateFolder(teamName, rootFolderId);
-          if (subFolderId) {
-            console.log('[Approve] ✅ Team subfolder created/found:', subFolderId);
-            targetFolderId = subFolderId;
-          } else {
-            console.warn('[Approve] ❌ Failed to create/find team subfolder, using root folder');
-            targetFolderId = rootFolderId;
-          }
-        }
-
-        // 3. Upload to Target Folder
-        console.log('[Approve] 📤 Uploading file to Drive. File:', photo.file_name, 'Size:', buffer.length, 'Target Folder:', targetFolderId);
-        driveData = await uploadToGoogleDrive(
-          buffer,
-          photo.file_name,
-          photo.mime_type || 'image/jpeg',
-          targetFolderId
-        );
-        if (driveData?.id) {
-          console.log('[Approve] ✅ Drive upload successful! File ID:', driveData.id);
-        } else {
-          console.warn('[Approve] ⚠️ Drive upload returned null');
-        }
-      } catch (err) {
-        console.error('Drive upload failed:', err);
-        driveUploadError = err;
-        // We continue to approve even if drive fails, but we won't mark as migrated
-      }
-    } else {
-      console.error('Failed to download from Supabase for Drive upload:', downloadError);
-    }
-
-    // Update photo status to approved AND Drive info
+    // Update photo status to approved AND store Drive link
     const updatePayload: any = {
       status: 'approved',
       approved_at: new Date().toISOString(),
@@ -115,7 +51,6 @@ export async function POST(
     if (driveData) {
       updatePayload.migrated_to_google_drive = true;
       updatePayload.google_drive_id = driveData.id;
-      // Optionally store webViewLink in metadata if you want
     }
 
     const { data: updatedPhoto, error: updateError } = await supabase
@@ -133,17 +68,88 @@ export async function POST(
     return successResponse({
       success: true,
       photo: updatedPhoto,
-      driveStatus: driveData ? 'uploaded' : (driveUploadError ? 'failed' : 'skipped'),
+      driveStatus: driveData ? 'uploaded' : 'skipped/failed',
       driveFileId: driveData?.id || null,
-      driveError: driveUploadError ? String(driveUploadError) : null,
       message: driveData
         ? `Photo approved and uploaded to Drive (ID: ${driveData.id})`
-        : (driveUploadError 
-          ? `Photo approved but Drive upload failed: ${String(driveUploadError)}`
-          : 'Photo approved (Drive upload skipped)'),
+        : 'Photo approved (Drive migration skipped or failed)',
     });
+  } catch (err: any) {
+    console.error('Error approving photo:', err);
+    return errorResponse(err.message || 'Internal server error', 500);
+  }
+}
+
+/**
+ * Migration Helper to avoid duplicate folders and handle Drive logic
+ * Uses 'teams' table to cache folder IDs
+ */
+async function migrateToDrive(photo: any) {
+  try {
+    console.log(`[Drive] Migrating photo ${photo.id} belonging to school/team ${photo.school_uuid}`);
+
+    // 1. Download file from Supabase Storage
+    const { data: fileData, error: downloadError } = await supabase.storage
+      .from('photos')
+      .download(photo.file_path);
+
+    if (downloadError || !fileData) {
+      console.error('[Drive] ❌ Failed to download from Supabase:', downloadError);
+      return null;
+    }
+
+    const arrayBuffer = await fileData.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Import Drive utilities dynamically
+    const { uploadToGoogleDrive, findOrCreateFolder } = await import('@/lib/googleDrive');
+
+    const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+    if (!rootFolderId) {
+      console.warn('[Drive] ❌ GOOGLE_DRIVE_FOLDER_ID not set in environment');
+      return null;
+    }
+
+    // 2. Resolve Target Folder (Check Cache first)
+    let targetFolderId = rootFolderId;
+    const team = photo.teams;
+
+    if (team) {
+      if (team.google_drive_folder_id) {
+        console.log('[Drive] 📁 Using cached folder ID for team:', team.name, team.google_drive_folder_id);
+        targetFolderId = team.google_drive_folder_id;
+      } else {
+        console.log('[Drive] 📁 Folder not cached. Searching or creating for:', team.name);
+        const folderId = await findOrCreateFolder(team.name, rootFolderId);
+
+        if (folderId) {
+          targetFolderId = folderId;
+          // CACHE THE ID: Save it to the 'teams' table for future use
+          const { error: patchError } = await supabase
+            .from('teams')
+            .update({ google_drive_folder_id: folderId })
+            .eq('uuid', team.uuid);
+
+          if (patchError) {
+            console.error('[Drive] ⚠️ Failed to cache folder ID in teams table:', patchError);
+          } else {
+            console.log('[Drive] ✅ Folder ID cached successfully in teams table');
+          }
+        }
+      }
+    }
+
+    // 3. Perform the actual upload
+    const driveData = await uploadToGoogleDrive(
+      buffer,
+      photo.file_name,
+      photo.mime_type || 'image/jpeg',
+      targetFolderId
+    );
+
+    return driveData;
   } catch (error) {
-    console.error('Error approving photo:', error);
-    return errorResponse('Internal server error', 500);
+    console.error('[Drive] Global migration exception:', error);
+    return null;
   }
 }
