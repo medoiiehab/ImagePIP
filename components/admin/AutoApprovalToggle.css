@@ -1,0 +1,125 @@
+.auto-approval-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: white;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--primary);
+    padding: 1.25rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.banner-content {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.banner-icon {
+    font-size: 1.75rem;
+    padding: 0.75rem;
+    background: var(--bg-secondary);
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.banner-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.banner-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.status-pill {
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0px;
+    display: inline-block;
+    letter-spacing: 0.02em;
+}
+
+.status-pill.active {
+    color: var(--success);
+    background: rgba(21, 128, 61, 0.05);
+}
+
+.status-pill.inactive {
+    color: var(--text-muted);
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.error-tip {
+    font-size: 0.8rem;
+    color: var(--danger);
+}
+
+.toggle-btn {
+    padding: 0.75rem 1.75rem;
+    background: white;
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-radius: 0;
+}
+
+.toggle-btn:hover {
+    background: var(--bg-secondary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.toggle-btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+.toggle-btn.active:hover {
+    background: #1e293b;
+}
+
+.toggle-btn.loading {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+@media (max-width: 600px) {
+    .auto-approval-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.5rem;
+        padding: 1.5rem;
+    }
+
+    .banner-actions {
+        width: 100%;
+    }
+
+    .toggle-btn {
+        width: 100%;
+        text-align: center;
+    }
+}

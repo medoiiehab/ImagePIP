@@ -82,10 +82,10 @@ export async function POST(request: NextRequest) {
 
   try {
     console.log('[Upload] POST request received');
-    
+
     const formData = await request.formData();
     console.log('[Upload] FormData keys:', Array.from(formData.keys()));
-    
+
     const file = formData.get('file') as any;
     const schoolUuid = user.schoolUuid || formData.get('schoolUuid');
 
@@ -145,6 +145,21 @@ export async function POST(request: NextRequest) {
       .from('photos')
       .getPublicUrl(fileName);
 
+    // Check for auto-approval setting
+    let isAutoApproved = false;
+    try {
+      const { data: settings, error: settingsError } = await supabase
+        .from('system_settings')
+        .select('auto_approval')
+        .eq('id', 1);
+
+      if (!settingsError && settings && settings.length > 0) {
+        isAutoApproved = settings[0].auto_approval || false;
+      }
+    } catch (err) {
+      console.warn('Could not check auto_approval setting, defaulting to false');
+    }
+
     // Create photo record in database
     const { data: newPhoto, error: insertError } = await supabase
       .from('photos')
@@ -155,13 +170,16 @@ export async function POST(request: NextRequest) {
         file_path: fileName,
         file_size: file.size,
         mime_type: file.type,
-        status: 'pending',
+        status: isAutoApproved ? 'approved' : 'pending',
+        approved_at: isAutoApproved ? new Date().toISOString() : null,
+        approved_by: isAutoApproved ? parseInt(user.id) : null,
         migrated_to_google_drive: false,
         metadata: {
           originalName: file.name,
           size: file.size,
           mimeType: file.type,
           publicUrl: urlData?.publicUrl,
+          autoApproved: isAutoApproved
         },
       })
       .select();

@@ -6,6 +6,7 @@ import Header from '@/components/common/Header';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import PhotoGrid from '@/components/photos/PhotoGrid';
 import SchoolFilter from '@/components/admin/SchoolFilter';
+import AutoApprovalToggle from '@/components/admin/AutoApprovalToggle';
 import { usePhotoManagement } from '@/hooks/usePhotoManagement';
 import '../dashboard/admin-dashboard.css';
 
@@ -40,6 +41,8 @@ export default function AdminPhotos() {
         <Header title="Photo Management" />
 
         <div className="dashboard-container">
+          <AutoApprovalToggle />
+
           <SchoolFilter
             onSchoolChange={setSelectedSchool}
             selectedSchoolUuid={selectedSchool}

@@ -13,10 +13,10 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="login-page">
+    <div className="login-page ltr-layout">
       <div className="login-form-container">
         <Link href="/login" className="back-link">
-          ← Back to Role Selection
+          → العودة لاختيار الدور
         </Link>
 
         <div className="form-wrapper">
@@ -25,7 +25,7 @@ export default function AdminLoginPage() {
         </div>
 
         <div className="form-footer">
-          <p>Don't have an account? Contact your system administrator</p>
+          <p>ليس لديك حساب؟ تواصل مع مسؤول النظام</p>
         </div>
       </div>
 

@@ -13,10 +13,10 @@ export default function ClientLoginPage() {
   };
 
   return (
-    <div className="login-page">
+    <div className="login-page ltr-layout">
       <div className="login-form-container">
         <Link href="/login" className="back-link">
-          ← Back to Role Selection
+          → العودة لاختيار الدور
         </Link>
 
         <div className="form-wrapper">
@@ -25,7 +25,7 @@ export default function ClientLoginPage() {
         </div>
 
         <div className="form-footer">
-          <p>Ask your team administrator for your login credentials</p>
+          <p>اطلب بيانات الدخول الخاصة بك من مسؤول الفريق</p>
         </div>
       </div>
 

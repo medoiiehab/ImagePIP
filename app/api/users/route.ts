@@ -123,8 +123,8 @@ export async function POST(request: NextRequest) {
     // Filter schools to only valid ones found in DB
     const validSchoolUuids = validTeams.map(t => t.uuid);
 
-    // Default password is P{userUuid}
-    const password = `P${userUuid}`;
+    // Default password is A{userUuid}
+    const password = `A${userUuid}`;
     const password_hash = hashPassword(password);
 
     // Insert new user (without school_uuid)

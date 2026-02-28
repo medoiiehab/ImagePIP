@@ -2,16 +2,15 @@
   max-width: 400px;
   margin: 0 auto;
   padding: 40px 20px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  background: transparent;
 }
 
 .login-form h2 {
   margin: 0 0 30px 0;
   text-align: center;
-  color: #333;
+  color: #0A0A0A;
   font-size: 24px;
+  font-weight: 600;
 }
 
 .form-group {
@@ -21,26 +20,28 @@
 .form-group label {
   display: block;
   margin-bottom: 8px;
-  font-weight: 600;
-  color: #333;
+  font-weight: 500;
+  color: #737373;
   font-size: 14px;
 }
 
 .form-group input {
   width: 100%;
   padding: 10px 12px;
-  border: 2px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
+  background: transparent;
+  color: #0A0A0A;
+  border: none;
+  border-bottom: 1px solid #D4AF37;
+  border-radius: 0;
+  font-size: 16px;
   font-family: inherit;
-  transition: border-color 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-sizing: border-box;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.2);
 }
 
 .form-group input.input-error {
@@ -54,36 +55,39 @@
 .field-error {
   display: block;
   margin-top: 6px;
-  color: #dc3545;
+  color: #ff6b6b;
   font-size: 12px;
   font-weight: 500;
 }
 
 .form-error-message {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #ff6b6b;
   padding: 12px;
-  border-radius: 6px;
+  border-radius: 2px;
   margin-bottom: 20px;
   font-size: 14px;
-  border: 1px solid #f5c6cb;
+  border: 1px solid rgba(220, 53, 69, 0.3);
 }
 
 .login-form button {
   width: 100%;
   padding: 12px 20px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 6px;
+  background-color: #0A0A0A;
+  color: #D4AF37;
+  border: 1px solid #0A0A0A;
+  border-radius: 2px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .login-form button:hover:not(:disabled) {
-  background-color: #0056b3;
+  background-color: #D4AF37;
+  color: #0A0A0A;
+  border-color: #D4AF37;
+  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.2);
 }
 
 .login-form button:disabled {

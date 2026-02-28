@@ -108,7 +108,7 @@ export default function ClientLoginForm({
 
   return (
     <form className="login-form glass animate-fade-in" onSubmit={handleSubmit}>
-      <h2 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Team Member Login</h2>
+      <h2 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>دخول عضو الفريق</h2>
 
       {errors.submit && (
         <div className="form-error-message animate-fade-in" style={{
@@ -125,57 +125,57 @@ export default function ClientLoginForm({
       )}
 
       <div className="form-group">
-        <label htmlFor="schoolUuid">School ID</label>
+        <label htmlFor="schoolUuid">معرف المدرسة/الفريق</label>
         <input
           type="text"
           id="schoolUuid"
           name="schoolUuid"
           value={formData.schoolUuid}
           onChange={handleChange}
-          placeholder="e.g., 1000"
+          placeholder="مثال: 1000"
           className={errors.schoolUuid ? 'input-error' : ''}
           maxLength={4}
         />
         {errors.schoolUuid && (
           <span className="field-error" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-            {errors.schoolUuid}
+            {errors.schoolUuid === 'School UUID is required' ? 'معرف المدرسة مطلوب' : 'تنسيق غير صحيح (4 أرقام)'}
           </span>
         )}
       </div>
 
       <div className="form-group">
-        <label htmlFor="userUuid">User ID</label>
+        <label htmlFor="userUuid">معرف المستخدم</label>
         <input
           type="text"
           id="userUuid"
           name="userUuid"
           value={formData.userUuid}
           onChange={handleChange}
-          placeholder="e.g., 1000"
+          placeholder="مثال: 1000"
           className={errors.userUuid ? 'input-error' : ''}
           maxLength={4}
         />
         {errors.userUuid && (
           <span className="field-error" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-            {errors.userUuid}
+            {errors.userUuid === 'User UUID is required' ? 'معرف المستخدم مطلوب' : 'تنسيق غير صحيح (4 أرقام)'}
           </span>
         )}
       </div>
 
       <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-        <label htmlFor="password">Password</label>
+        <label htmlFor="password">كلمة المرور</label>
         <input
           type="password"
           id="password"
           name="password"
           value={formData.password}
           onChange={handleChange}
-          placeholder="e.g., P1000"
+          placeholder="مثال: A1000"
           className={errors.password ? 'input-error' : ''}
         />
         {errors.password && (
           <span className="field-error" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-            {errors.password}
+            كلمة المرور مطلوبة
           </span>
         )}
       </div>
@@ -186,7 +186,7 @@ export default function ClientLoginForm({
         disabled={isLoading}
         style={{ width: '100%' }}
       >
-        {isLoading ? 'Verifying...' : 'Login to Camera'}
+        {isLoading ? 'جاري التحقق...' : 'الدخول إلى الكاميرا'}
       </button>
     </form>
   );

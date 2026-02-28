@@ -21,42 +21,42 @@ export default function LoginPage() {
   }, [router]);
 
   return (
-    <div className="login-page">
+    <div className="login-page ltr-layout">
       <div className="login-container">
         <div className="login-header">
-          <h1>📸 Image Pipeline</h1>
-          <p>Streamlined Image Intake System</p>
+          <h1>📸 نظام معالجة الصور</h1>
+          <p>نظام مبسط لاستلام ومعالجة الصور</p>
         </div>
 
         <div className="login-content">
-          <h2>Select Your Role</h2>
-          <p className="login-subtitle">Choose how you want to access the system</p>
+          <h2>اختر دورك</h2>
+          <p className="login-subtitle">يرجى تحديد طريقة الدخول إلى النظام</p>
 
           <div className="login-options">
             {/* Admin Login */}
             <Link href="/login/admin" className="login-option admin">
               <div className="option-icon">👨‍💼</div>
-              <h3>Admin</h3>
-              <p>Manage teams, users, and approve photos</p>
-              <span className="option-cta">Login as Admin →</span>
+              <h3>المسؤول</h3>
+              <p>إدارة الفرق، المستخدمين، واعتماد الصور</p>
+              <span className="option-cta">دخول المسؤول ←</span>
             </Link>
 
             {/* Client Login */}
             <Link href="/login/client" className="login-option client">
               <div className="option-icon">📱</div>
-              <h3>Team Member</h3>
-              <p>Capture and upload photos for your team</p>
-              <span className="option-cta">Login as Client →</span>
+              <h3>عضو الفريق</h3>
+              <p>التقاط ورفع الصور الخاصة بفريقك</p>
+              <span className="option-cta">دخول المصور ←</span>
             </Link>
           </div>
         </div>
 
         <div className="login-footer">
           <p>
-            <strong>🔒 Secure Login:</strong> All data is encrypted and stored securely
+            <strong>🔒 دخول آمن:</strong> جميع البيانات مشفرة ومخزنة بأمان
           </p>
           <p>
-            <strong>❓ Need Help?</strong> Contact your system administrator
+            <strong>❓ تحتاج مساعدة؟</strong> تواصل مع مسؤول النظام الخاص بك
           </p>
         </div>
       </div>

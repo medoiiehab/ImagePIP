@@ -101,14 +101,14 @@ export default function AdminLoginForm({
 
   return (
     <form className="login-form" onSubmit={handleSubmit}>
-      <h2>Admin Login</h2>
+      <h2>دخول المسؤول</h2>
 
       {errors.submit && (
         <div className="form-error-message">{errors.submit}</div>
       )}
 
       <div className="form-group">
-        <label htmlFor="email">Email</label>
+        <label htmlFor="email">البريد الإلكتروني</label>
         <input
           type="email"
           id="email"
@@ -119,23 +119,23 @@ export default function AdminLoginForm({
           className={errors.email ? 'input-error' : ''}
         />
         {errors.email && (
-          <span className="error">{errors.email}</span>
+          <span className="error">{errors.email === 'Email is required' ? 'البريد الإلكتروني مطلوب' : 'تنسيق البريد غير صحيح'}</span>
         )}
       </div>
 
       <div className="form-group">
-        <label htmlFor="password">Password</label>
+        <label htmlFor="password">كلمة المرور</label>
         <input
           type="password"
           id="password"
           name="password"
           value={formData.password}
           onChange={handleChange}
-          placeholder="Enter your password"
+          placeholder="أدخل كلمة المرور"
           className={errors.password ? 'input-error' : ''}
         />
         {errors.password && (
-          <span className="error">{errors.password}</span>
+          <span className="error">كلمة المرور مطلوبة</span>
         )}
       </div>
 
@@ -145,7 +145,7 @@ export default function AdminLoginForm({
         disabled={isLoading}
         style={{ width: '100%', marginTop: '0.5rem' }}
       >
-        {isLoading ? 'Logging in...' : 'Login'}
+        {isLoading ? 'جاري الدخول...' : 'تسجيل الدخول'}
       </button>
     </form>
   );

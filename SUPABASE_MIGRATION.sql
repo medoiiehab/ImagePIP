@@ -151,11 +151,11 @@ VALUES
   ('1001', 'East High School', 'Alternative School', NULL);
 
 -- C. Create a Client User linked to BOTH Schools
--- User UUID: 1005, Pwd: P1005 -> Base64: UDEwMDU=
+-- User UUID: 1005, Pwd: A1005 -> Base64: QTEwMDU=
 INSERT INTO users (uuid, password_hash, role, first_name, created_by)
 VALUES (
   '1005',
-  'UDEwMDU=', 
+  'QTEwMDU=', 
   'client',
   'Student Photographer',
   1

@@ -15,8 +15,12 @@ export default function AdminSettings() {
     autoDeleteDays: 30,
     emailNotifications: true,
     maintenanceMode: false,
+    autoApproval: false,
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const userRole = localStorage.getItem('userRole');
@@ -25,12 +29,31 @@ export default function AdminSettings() {
       return;
     }
 
-    // Load settings from localStorage or API
-    const savedSettings = localStorage.getItem('adminSettings');
-    if (savedSettings) {
-      setSettings(JSON.parse(savedSettings));
-    }
+    fetchSettings();
   }, [router]);
+
+  const fetchSettings = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/settings', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSettings(data.settings);
+      } else {
+        // Fallback or show error
+        console.warn('Could not fetch settings from API, using defaults');
+      }
+    } catch (err) {
+      console.error('Fetch error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleChange = (field: string, value: any) => {
     setSettings((prev) => ({
@@ -39,11 +62,48 @@ export default function AdminSettings() {
     }));
   };
 
-  const handleSave = () => {
-    localStorage.setItem('adminSettings', JSON.stringify(settings));
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const handleSave = async () => {
+    setIsSaving(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        },
+        body: JSON.stringify(settings)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save settings');
+      }
+
+      // Also save to localStorage for quick access/fallback
+      localStorage.setItem('adminSettings', JSON.stringify(settings));
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err: any) {
+      setError(err.message || 'An error occurred');
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="admin-dashboard-layout">
+        <AdminSidebar />
+        <div className="admin-dashboard-content">
+          <Header title="Settings" />
+          <div className="dashboard-container" style={{ textAlign: 'center', padding: '4rem' }}>
+            <div className="animate-pulse">Loading settings...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-dashboard-layout">
@@ -56,6 +116,7 @@ export default function AdminSettings() {
             <h2>⚙️ System Settings</h2>
 
             {saved && <div className="success-message">Settings saved successfully!</div>}
+            {error && <div className="error-message" style={{ color: 'var(--danger)', marginBottom: '1rem' }}>{error}</div>}
 
             <div className="settings-form">
               <div className="settings-section">
@@ -69,6 +130,25 @@ export default function AdminSettings() {
                     value={settings.siteName}
                     onChange={(e) => handleChange('siteName', e.target.value)}
                   />
+                </div>
+              </div>
+
+              <div className="settings-section">
+                <h3>Automation & Approval</h3>
+
+                <div className="setting-item">
+                  <label className="toggle-label" htmlFor="auto-approval">
+                    <input
+                      id="auto-approval"
+                      type="checkbox"
+                      checked={settings.autoApproval}
+                      onChange={(e) => handleChange('autoApproval', e.target.checked)}
+                    />
+                    Auto-Approve Photos
+                  </label>
+                  <p className="setting-desc">
+                    Newly uploaded photos will be automatically approved (bypassing manual review)
+                  </p>
                 </div>
               </div>
 
@@ -150,8 +230,12 @@ export default function AdminSettings() {
               </div>
 
               <div className="settings-actions">
-                <button className="btn btn-success btn-large" onClick={handleSave}>
-                  💾 Save Settings
+                <button
+                  className="btn btn-success btn-large"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                >
+                  {isSaving ? '⏳ Saving...' : '💾 Save Settings'}
                 </button>
               </div>
             </div>

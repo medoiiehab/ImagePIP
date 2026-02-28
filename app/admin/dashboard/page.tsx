@@ -7,6 +7,7 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminStats from '@/components/admin/AdminStats';
 import PhotoGrid from '@/components/photos/PhotoGrid';
 import SchoolFilter from '@/components/admin/SchoolFilter';
+import AutoApprovalToggle from '@/components/admin/AutoApprovalToggle';
 import { usePhotoManagement } from '@/hooks/usePhotoManagement';
 import './admin-dashboard.css';
 
@@ -51,6 +52,8 @@ export default function AdminDashboard() {
 
         <div className="dashboard-container">
           <AdminStats data={stats} isLoading={isLoading} />
+
+          <AutoApprovalToggle />
 
           <SchoolFilter
             onSchoolChange={setSelectedSchool}

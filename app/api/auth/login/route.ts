@@ -100,10 +100,10 @@ export async function POST(request: NextRequest) {
         return errorResponse('User is not authorized for this school', 401);
       }
 
-      // Verify password (either custom hash or default P{UUID})
+      // Verify password (either custom hash or default A{UUID})
       const isValid = clientUser.password_hash
         ? verifyPassword(password, clientUser.password_hash)
-        : password === `P${userUuid}`;
+        : password === `A${userUuid}`;
 
       if (!isValid) {
         return errorResponse('Invalid credentials', 401);
