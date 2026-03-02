@@ -89,8 +89,8 @@ export async function POST(request: NextRequest) {
       schools = [schoolUuid];
     }
 
-    if (!schools || schools.length === 0 || !role) {
-      return errorResponse('At least one School UUID and role are required');
+    if (!role) {
+      return errorResponse('User role is required');
     }
 
     // Auto-generate UUID if not provided (Start 1000, +5)

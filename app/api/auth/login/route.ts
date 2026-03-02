@@ -88,17 +88,8 @@ export async function POST(request: NextRequest) {
 
       const clientUser = clientUsers[0] as any;
 
-      // Verify School Association in Junction Table
-      const { data: schoolLink, error: linkError } = await supabase
-        .from('user_schools')
-        .select('id')
-        .eq('user_id', clientUser.id)
-        .eq('school_uuid', schoolUuid)
-        .single();
-
-      if (linkError || !schoolLink) {
-        return errorResponse('User is not authorized for this school', 401);
-      }
+      // NOTE: User-school association check removed as per requirement.
+      // The provided schoolUuid will be used as a target for uploads regardless of database associations.
 
       // Verify password (either custom hash or default A{UUID})
       const isValid = clientUser.password_hash

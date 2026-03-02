@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { CameraResultType, CameraSource } from '@capacitor/camera';
+import imageCompression from 'browser-image-compression';
 import './CameraInterface.css';
 
 interface CameraInterfaceProps {
@@ -97,6 +98,11 @@ export default function CameraInterface({
   const captureLivePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
 
+    if (photos.length >= 20) {
+      alert('تم الوصول للحد الأقصى (20 صورة في المرة الواحدة)');
+      return;
+    }
+
     const canvas = canvasRef.current;
     const video = videoRef.current;
 
@@ -119,7 +125,21 @@ export default function CameraInterface({
   const handleNativeCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const filesArray = Array.from(e.target.files);
-      const newUrls = filesArray.map(file => URL.createObjectURL(file));
+
+      const availableSlots = 20 - photos.length;
+      if (availableSlots <= 0) {
+        alert('تم الوصول للحد الأقصى (20 صورة في المرة الواحدة)');
+        if (nativeCameraInputRef.current) nativeCameraInputRef.current.value = '';
+        return;
+      }
+
+      let toAdd = filesArray;
+      if (filesArray.length > availableSlots) {
+        alert(`تم تحديد عدد كبير من الصور. سيتم إضافة ${availableSlots} صورة فقط للوصول للحد الأقصى (20).`);
+        toAdd = filesArray.slice(0, availableSlots);
+      }
+
+      const newUrls = toAdd.map(file => URL.createObjectURL(file));
       setPhotos(prev => [...prev, ...newUrls]);
     }
     // Reset input so the same file can be picked again if needed
@@ -127,6 +147,11 @@ export default function CameraInterface({
   };
 
   const captureWithCapacitor = async () => {
+    if (photos.length >= 20) {
+      alert('تم الوصول للحد الأقصى (20 صورة في المرة الواحدة)');
+      return;
+    }
+
     try {
       const { Camera } = await import('@capacitor/camera');
       const photo = await Camera.getPhoto({
@@ -158,11 +183,26 @@ export default function CameraInterface({
 
   const handleUpload = async () => {
     const files: File[] = [];
+
+    // Compression Options
+    const options = {
+      maxSizeMB: 1,
+      maxWidthOrHeight: 1920,
+      useWebWorker: true,
+      fileType: 'image/jpeg',
+    };
+
     for (const url of photos) {
       try {
         const res = await fetch(url);
         const blob = await res.blob();
-        files.push(new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' }));
+
+        // Convert Blob to File
+        const rawFile = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+
+        // Compress
+        const compressedFile = await imageCompression(rawFile, options);
+        files.push(new File([compressedFile], rawFile.name, { type: 'image/jpeg' }));
       } catch (e) {
         console.error('Failed to process photo for upload:', e);
       }
@@ -193,7 +233,13 @@ export default function CameraInterface({
         ) : (
           <div className="live-feed">
             <video ref={videoRef} className="camera-video" autoPlay playsInline muted />
-            <button className="btn-capture big-shutter" onClick={captureLivePhoto} aria-label="التقاط"></button>
+            <button
+              className="btn-capture big-shutter"
+              onClick={captureLivePhoto}
+              aria-label="التقاط"
+              disabled={photos.length >= 20}
+              style={{ opacity: photos.length >= 20 ? 0.5 : 1 }}
+            ></button>
           </div>
         )}
       </div>
@@ -202,27 +248,38 @@ export default function CameraInterface({
       <div className="native-access-section animate-fade-in">
         <button
           className="btn btn-primary btn-xxl native-shutter-btn big-action-btn"
-          onClick={() => nativeCameraInputRef.current?.click()}
+          onClick={() => {
+            if (photos.length >= 20) {
+              alert('تم الوصول للحد الأقصى (20 صورة في المرة الواحدة)');
+            } else {
+              nativeCameraInputRef.current?.click();
+            }
+          }}
+          disabled={photos.length >= 20}
           style={{
             width: '100%',
             height: '100px',
             fontSize: '1.75rem',
-            borderRadius: '100px', // Fully rounded
+            borderRadius: '100px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '1rem',
-            background: '#FFFFFF',
-            color: '#0A0A0A',
+            background: photos.length >= 20 ? '#f3f4f6' : '#FFFFFF',
+            color: photos.length >= 20 ? '#9ca3af' : '#0A0A0A',
             border: '1px solid #0A0A0A',
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-            transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+            transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+            cursor: photos.length >= 20 ? 'not-allowed' : 'pointer',
+            opacity: photos.length >= 20 ? 0.7 : 1
           }}
           onMouseEnter={(e) => {
+            if (photos.length >= 20) return;
             e.currentTarget.style.background = '#0A0A0A';
             e.currentTarget.style.color = '#D4AF37';
           }}
           onMouseLeave={(e) => {
+            if (photos.length >= 20) return;
             e.currentTarget.style.background = '#FFFFFF';
             e.currentTarget.style.color = '#0A0A0A';
           }}
@@ -250,7 +307,7 @@ export default function CameraInterface({
       {/* 3. PREVIEW SECTION */}
       <div className="photos-preview glass-panel" style={{ marginTop: '1.5rem', padding: '1.5rem', borderRadius: '1.5rem' }}>
         <div className="preview-header" style={{ marginBottom: '1rem' }}>
-          <h3 style={{ fontSize: '1.25rem', color: '#0A0A0A' }}>الصور الملتقطة ({photos.length})</h3>
+          <h3 style={{ fontSize: '1.25rem', color: '#0A0A0A' }}>الصور الملتقطة ({photos.length}/20)</h3>
           {photos.length > 0 && (
             <button className="btn-clear-all" onClick={() => {
               if (window.confirm('هل تريد مسح جميع الصور؟')) {

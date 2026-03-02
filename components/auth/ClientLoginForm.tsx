@@ -125,7 +125,7 @@ export default function ClientLoginForm({
       )}
 
       <div className="form-group">
-        <label htmlFor="schoolUuid">معرف المدرسة/الفريق</label>
+        <label htmlFor="schoolUuid">معرف مدرسة الهدف (مجلد الدرايف)</label>
         <input
           type="text"
           id="schoolUuid"

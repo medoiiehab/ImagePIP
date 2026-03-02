@@ -45,9 +45,7 @@ export default function AdminUserManager({
       }
     }
 
-    if (formData.schools.length === 0) {
-      newErrors.schools = 'At least one school is required';
-    }
+    // School linkage is now optional as users select target at login
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

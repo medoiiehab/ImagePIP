@@ -37,7 +37,7 @@ export default function MultiSchoolSelector({
 
     return (
         <div className="multi-school-selector">
-            <label className="text-sm font-semibold mb-2 block">Linked Schools</label>
+            <label className="text-sm font-semibold mb-2 block">Linked Schools (Optional)</label>
 
             {/* List of current schools */}
             <div className="school-tags">
