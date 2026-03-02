@@ -192,13 +192,25 @@ export default function CameraInterface({
       fileType: 'image/jpeg',
     };
 
-    for (const url of photos) {
+    for (let i = 0; i < photos.length; i++) {
+      const url = photos[i];
       try {
         const res = await fetch(url);
         const blob = await res.blob();
 
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+
+        // e.g., 2024-03-02_15-30-45_1.jpg
+        const fileName = `${year}-${month}-${day}_${hours}-${minutes}-${seconds}_${i + 1}.jpg`;
+
         // Convert Blob to File
-        const rawFile = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        const rawFile = new File([blob], fileName, { type: 'image/jpeg' });
 
         // Compress
         const compressedFile = await imageCompression(rawFile, options);

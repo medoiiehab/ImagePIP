@@ -80,18 +80,17 @@ export default function AdminSidebar() {
                 </Link>
               </li>
             ))}
+            <li style={{ padding: '1.5rem', marginTop: '0.5rem' }}>
+              <button
+                className="btn btn-logout-sidebar"
+                onClick={handleLogout}
+              >
+                <span className="nav-icon">🚪</span>
+                <span className="nav-label">Logout</span>
+              </button>
+            </li>
           </ul>
         </nav>
-
-        <div className="sidebar-footer">
-          <button
-            className="btn btn-logout-sidebar"
-            onClick={handleLogout}
-          >
-            <span>🚪</span>
-            <span>Logout</span>
-          </button>
-        </div>
       </aside>
     </>
   );
