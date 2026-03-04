@@ -25,6 +25,7 @@ export default function CameraInterface({
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const nativeCameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   // Check for Capacitor
   useEffect(() => {
@@ -129,7 +130,7 @@ export default function CameraInterface({
       const availableSlots = 20 - photos.length;
       if (availableSlots <= 0) {
         alert('تم الوصول للحد الأقصى (20 صورة في المرة الواحدة)');
-        if (nativeCameraInputRef.current) nativeCameraInputRef.current.value = '';
+        e.target.value = '';
         return;
       }
 
@@ -143,7 +144,7 @@ export default function CameraInterface({
       setPhotos(prev => [...prev, ...newUrls]);
     }
     // Reset input so the same file can be picked again if needed
-    if (nativeCameraInputRef.current) nativeCameraInputRef.current.value = '';
+    e.target.value = '';
   };
 
   const captureWithCapacitor = async () => {
@@ -303,6 +304,47 @@ export default function CameraInterface({
           سيتم فتح كاميرا الجوال الأساسية للالتقاط
         </p>
 
+        <button
+          className="btn btn-secondary btn-xl"
+          onClick={() => {
+            if (photos.length >= 20) {
+              alert('تم الوصول للحد الأقصى (20 صورة في المرة الواحدة)');
+            } else {
+              galleryInputRef.current?.click();
+            }
+          }}
+          disabled={photos.length >= 20}
+          style={{
+            width: '100%',
+            height: '80px',
+            fontSize: '1.5rem',
+            borderRadius: '100px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '1rem',
+            background: photos.length >= 20 ? '#f3f4f6' : '#f8f9fa',
+            color: photos.length >= 20 ? '#9ca3af' : '#4b5563',
+            border: '1px solid #d1d5db',
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.02)',
+            transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+            cursor: photos.length >= 20 ? 'not-allowed' : 'pointer',
+            opacity: photos.length >= 20 ? 0.7 : 1,
+            marginTop: '1.5rem'
+          }}
+          onMouseEnter={(e) => {
+            if (photos.length >= 20) return;
+            e.currentTarget.style.background = '#e5e7eb';
+          }}
+          onMouseLeave={(e) => {
+            if (photos.length >= 20) return;
+            e.currentTarget.style.background = '#f8f9fa';
+          }}
+        >
+          <span className="btn-icon" style={{ fontSize: '2rem' }}>🖼️</span>
+          رفع من المعرض
+        </button>
+
         <input
           type="file"
           accept="image/*"
@@ -311,6 +353,14 @@ export default function CameraInterface({
           style={{ display: 'none' }}
           onChange={handleNativeCapture}
           multiple // Allow multiple photos if browser supports it
+        />
+        <input
+          type="file"
+          accept="image/*"
+          ref={galleryInputRef}
+          style={{ display: 'none' }}
+          onChange={handleNativeCapture}
+          multiple
         />
       </div>
 
